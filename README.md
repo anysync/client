@@ -1,2 +1,2 @@
 # client
-AnySync Client
+AnySync Client V1
