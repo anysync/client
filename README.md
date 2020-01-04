@@ -1,4 +1,3 @@
-# client
 # AnySync Client 
 
 An open source client for AnySync (https://anysync.net)
