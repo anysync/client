@@ -31,7 +31,7 @@ The newly created account is a trial account with 50GB cloud storage. You can up
 
 ###### Technical Details
 - Secure random 256-bit file key and auth key are generated.
-- A [NaCl](https://en.wikipedia.org/wiki/NaCl_(software) box public/private key pair is generated.
+- A [NaCl](https://en.wikipedia.org/wiki/NaCl_(software)) box public/private key pair is generated.
 - In the login request, client sends out a data structure with these data:
 -- Client version number.
 -- Email as user name.
