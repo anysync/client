@@ -3,13 +3,21 @@
 An open source client for [AnySync](https://anysync.net), which is 
 a secure cloud storage service with end-to-end encryption.
 
-After git cloning, run build.sh script to compile, then run
+## Installation and Build
+
+[Go](https://golang.org/dl/) 1.11 or later version is required for build.
+
+After git cloning: 
+      
+`git clone https://github.com/anysync/client`
+
+run build.sh script to compile, then run
 
 `Sync -help`
 
 to see usage examples.
 
-## Steps 
+## Usage 
 
 Suppose you want to sync a folder '~/AnySync'. You can follow these steps:
 
