@@ -2,6 +2,12 @@
 
 An open source client for [AnySync](https://anysync.net), which is 
 a secure cloud storage service with end-to-end encryption.
+## Features
+- End-to-end file encryption: data is encrypted using 256-bit AES-GCM, and it can only be accessed with your key. Neither an administrator nor third parties can read the data.
+- Incremental backup and sync.
+- Smart sync (placeholder files): it helps you reduce local disk storage.
+- Deduplication: only uniqure data is compressed and uploaded to the cloud.
+- Versioned file backup and sync.
 
 ## Installation and Build
 
