@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0"  xmlns="http://javafx.com/javafx/8.0.171"
+      xmlns:fx="http://javafx.com/fxml/1" stylesheets="@/css/filebrowser.css" onMouseDragged="#mouseDragged" onMousePressed="#mousePressed"
+      fx:controller="net.anysync.ui.FileBrowserMainController">
+  <children>
+      <HBox alignment="CENTER_LEFT" prefHeight="40.0" HBox.hgrow="ALWAYS">
+         <children>
+            <HBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
+               <children>
+
+                   <Button text=""  onMouseClicked="#homeImageButtonClicked">
+                       <graphic>
+                           <FontIcon iconLiteral="fth-home" iconSize="20"/>
+                       </graphic>
+                   </Button>
+                   <Button text=""  onMouseClicked="#backButtonClicked">
+                       <HBox.margin>
+                           <Insets left="15.0"/>
+                       </HBox.margin>
+                       <graphic>
+                           <FontIcon iconLiteral="fth-arrow-left-circle" iconSize="20"/>
+                       </graphic>
+                   </Button>
+                   <Button text=""  onMouseClicked="#forwardButtonClicked">
+                       <HBox.margin>
+                           <Insets left="15.0"/>
+                       </HBox.margin>
+                       <graphic>
+                           <FontIcon iconLiteral="fth-arrow-right-circle" iconSize="20"/>
+                       </graphic>
+                   </Button>
+
+                   <Button text="" onMouseClicked="#reloadButtonClicked">
+                       <HBox.margin>
+                           <Insets left="15.0"/>
+                       </HBox.margin>
+                       <graphic>
+                           <FontIcon iconLiteral="fth-rotate-cw" iconSize="20"/>
+                       </graphic>
+                   </Button>
+
+                   <HBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
+                       <TextField fx:id="pathText" editable="false" onAction="#pathTextFieldOnEnter" maxHeight="30.0" minHeight="20.0" prefWidth="1000">
+                           <HBox.margin>
+                              <Insets left="10.0" />
+                           </HBox.margin>
+                        </TextField>
+                   </HBox>
+               </children>
+            </HBox>
+         </children>
+      </HBox>
+    <AnchorPane maxHeight="-1.0" maxWidth="-1.0" VBox.vgrow="ALWAYS">
+                 <children>
+                     <BorderPane fx:id="mainPane" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+                                 AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
+                 </children>
+    </AnchorPane>
+      <HBox fx:id="hboxStatusBar" alignment="CENTER_RIGHT" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+         <children>
+         </children>
+      </HBox>
+  </children>
+</VBox>

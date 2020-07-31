@@ -1,0 +1,302 @@
+
+
+.root {
+	-fx-background-color	: -vBgColorDefault;
+
+	-fx-font-family: 'Helvetica', Arial, sans-serif;
+
+}
+
+* {
+    -vBgColorDefault        : #FFFFFF;
+    -vLabelText             : #333333;
+
+    -vBgColor               : #434C5E;   /**left pane*/
+    -vTextColor             : #333333;
+    -vTextWhite              : white;
+    -vTextBgColor              : #EEEEEE;
+    -vTextStatusColor       : #5E81AC;
+    
+    -vTabRowSelected        : #5E81AC;
+    -vTabPaneBgColor        : #e6e6e6;
+    -vTabPaneBgColor_s      : #76899b;
+    -vTabPaneBgColor_s_lbl  : #eff7ff;
+    
+}
+
+
+#labelEmpty {
+	-fx-text-fill			: -vTextColor; 
+    -fx-font-size			: 14.0;
+}
+
+.button {
+	-fx-alignment 			: CENTER;
+     -fx-background-color: transparent;
+    -fx-padding				: 1 2 1 2;
+    -fx-background-radius	: 0 ;
+    -fx-border-radius		: 4;
+    -fx-text-fill			: -vTextColor;
+   
+    -fx-font-size			: 13.0;
+}
+.button:hover {
+    -fx-background-color	: -vTextBgColor;
+    -fx-text-fill			: -vBgColor;
+    -fx-scale-y				: 1.1;
+}
+.button:pressed {
+    -fx-scale-y				: 0.9;
+    -fx-scale-x				: 0.9;
+}
+.topBarButton {
+	-fx-alignment 			: CENTER;
+    -fx-background-color	: -vBgColorDefault;
+    -fx-padding				: 0 5 0 5;
+    -fx-text-fill			: -vTextColor;
+    -fx-font-size			: 12.0;
+
+}
+
+.text-field {
+    -fx-background-color	: -vTextBgColor;
+    -fx-font-color			: -vTextColor;
+    -fx-background-radius	: 0 ;
+    -fx-font-size			: 12.0;    
+}
+
+.text-field:focused {
+    -fx-background-color	: -vTextBgColor;
+    -fx-font-color			: -vTextColor;
+    -fx-focus-color         : transparent; 
+}
+
+/*** Scroll Pane  ****/
+
+.scroll-pane > .viewport {
+   -fx-background-color		: -vTextWhite;
+}
+
+/*** Context Menu  ****/
+
+.context-menu {
+	-fx-background-color	: -vTextWhite;
+}
+
+.menu-item {
+	-fx-background-color	: -vTextWhite;
+   
+    -fx-font-size			: 12.0;    
+}
+.menu-item .label{
+    -fx-text-fill			: -vTextColor;
+}
+
+.menu-item:hover, .menu-item:focused {
+	-fx-background-color	: -vBgColor;
+	-fx-text-fill			: -vTextWhite;
+}
+.menu-item:focused > .label {
+	-fx-text-fill			: -vTextWhite;
+}
+
+
+.table-view{
+	-fx-background-color	: -vBgColorDefault;
+}
+.table-row-cell {
+	-fx-background-color	: transparent;
+}
+
+
+.table-view .column-header .label{
+    -fx-font-size			: 15.0;
+    -fx-font-weight: bold;
+    -fx-text-fill			: -vTextColor;
+    -fx-alignment			: CENTER_LEFT;
+}
+.table-view .cell{
+	-fx-font-size			: 13.0;
+	-fx-font-family: 'Helvetica', Arial, sans-serif;
+	-fx-background-color	: -vBgColorDefault;
+	-fx-border-color		: -vBgColorDefault;
+	-fx-text-fill			: -vTextColor;
+	-fx-alignment			: CENTER_LEFT;
+}
+
+.table-row-cell:selected {
+    -fx-background-color	: black;
+}
+.table-row-cell:selected .table-cell {
+    -fx-background-color	: -vBgColor;
+	-fx-border-color		: -vBgColor;
+    -fx-text-fill			: -vTextWhite;
+}
+
+.table-view .increment-button ,.table-view .decrement-button {
+    -fx-background-color	: -vBgColorDefault;
+    -fx-border-color		: -vBgColorDefault;
+    -fx-background-radius	: 0;
+    -fx-background-insets	: 0;   
+}
+.table-view .scroll-bar:horizontal .track,
+.table-view .scroll-bar:vertical .track{
+	-fx-background-color	: -vBgColorDefault;
+	-fx-border-color		: -vBgColorDefault;
+}
+.table-view .scroll-bar:horizontal .thumb,
+.table-view .scroll-bar:vertical .thumb {
+    -fx-background-color	: -vTextColor;
+	-fx-background-radius	: 0;
+}
+
+.table-view .scroll-bar:horizontal *.increment-arrow,
+.table-view .scroll-bar:horizontal *.decrement-arrow {
+    -fx-shape 				: " ";   
+}
+
+.table-view .scroll-bar:vertical *.increment-arrow,
+.table-view .scroll-bar:vertical *.decrement-arrow {
+    -fx-shape 				: " "; 
+}
+
+.table-view .scroll-bar > .corner {
+    -fx-background-color	: -vBgColor;
+}
+
+
+
+/*** Scroll pane   ****/
+
+#vboxHomeDir{
+    -fx-background-color	: -vBgColor;
+}
+
+
+.scroll-pane > .viewport {
+   -fx-background-color		: transparent;
+}
+
+.scroll-pane {
+    -fx-background-color	: -vBgColor;
+}
+
+.scroll-bar:horizontal, .scroll-bar:vertical{
+    -fx-background-color	: transparent;
+}
+
+.increment-button, .decrement-button {
+    -fx-background-color	: transparent;
+    -fx-border-color		: transparent;
+}
+
+.scroll-bar:vertical *.increment-arrow, 
+.scroll-bar:vertical *.decrement-arrow{
+    -fx-background-color	: -vBgColor;
+    -fx-shape 				: " ";   
+}
+
+.scroll-bar:horizontal *.increment-button, 
+.scroll-bar:horizontal *.decrement-button{
+    -fx-background-color	: -vBgColor;
+    -fx-padding				: 0;
+    -fx-shape 				: " ";   
+}
+
+.scroll-bar:horizontal *.increment-arrow, 
+.scroll-bar:horizontal *.decrement-arrow{
+    -fx-background-color	: -vBgColor;
+    -fx-padding				: 0;
+    -fx-shape 				: " ";   
+}
+
+.scroll-bar:horizontal .track,
+.scroll-bar:vertical .track{
+    -fx-background-color	: transparent;
+    -fx-border-color		: transparent;
+    -fx-background-radius	: 0em;
+}
+
+.scroll-bar:horizontal .thumb,
+.scroll-bar:vertical .thumb {
+    -fx-background-color	: -vBgColorDefault;
+    -fx-background-radius	: 0em;
+}
+
+.scroll-pane > .corner {
+    -fx-background-color	: -vBgColor;
+}
+
+
+/*** Alert  ****/
+
+.dialog-pane .text-flow{
+	-fx-text-fill			: -vTextColor; 
+	-fx-background-color	: -vBgColorDefault;
+}
+
+Text{
+	-fx-font-size			: 13.0;
+	-fx-fill				: -vTextColor; 
+	-fx-background-color	: -vBgColorDefault;
+}
+
+.dialog-pane {
+    -fx-background-color	: -vBgColorDefault;
+}
+
+.dialog-pane .label {
+    -fx-text-fill			: -vTextColor; 
+}
+
+.dialog-pane:header .header-panel {
+    -fx-background-color	: -vBgColorDefault;
+}
+
+.dialog-pane:header .header-panel .label {
+    -fx-font-size			: 13.0;
+}
+
+.dialog-pane .button{
+	-fx-font-size			: 13.0;
+   	-fx-background-color	: -vTabPaneBgColor_s;
+   	-fx-text-fill			: -vBgColorDefault; 
+}
+
+.dialog-pane .button:hover {
+   	-fx-background-color	: -vTabPaneBgColor_s;
+   	-fx-text-fill			: -vBgColorDefault;
+   	
+}
+
+
+.alert.confirmation.dialog-pane,
+.text-input-dialog.dialog-pane,
+.choice-dialog.dialog-pane {
+    -fx-background-color	: -vBgColorDefault;
+	-fx-border-color		: -vTextColor;
+}
+
+.alert.information.dialog-pane {
+    -fx-background-color	: -vBgColorDefault;
+	-fx-border-color		: -vTextColor;
+}
+
+.alert.error.dialog-pane {
+    -fx-background-color	: -vBgColorDefault;
+	-fx-border-color		: -vTextColor;
+}
+
+.alert.warning.dialog-pane {
+    -fx-background-color	: -vBgColorDefault;
+	-fx-border-color		: -vTextColor;
+}
+
+
+
+
+
+
+
+
+
