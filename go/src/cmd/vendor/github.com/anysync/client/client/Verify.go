@@ -7,6 +7,8 @@ package client
 
 import (
 	"errors"
+	"github.com/panjf2000/ants"
+	"sync"
 	utils "github.com/anysync/client/utils"
 )
 
@@ -76,26 +78,52 @@ func GetFullFileNameByKey(folderHash, fileNameKey string) (string, error){
 	return fileName, nil;
 }
 
+type RepoNotSynced struct{
+	repo *utils.Repository;
+	notsynced * []string;
+}
+
 func verifyRepositories() []string{
 	list := utils.GetRepositoryList()
 	config := utils.LoadConfig()
 	config.Mode = utils.CONFIG_MODE_BIDIRECTION
+	var notsynced []string
+	var wg sync.WaitGroup
+	p, _ := ants.NewPoolWithFunc(50, func(i interface{}) {
+		doCheckRepo(i)
+		wg.Done()
+	})
+	defer p.Release()
+
 	for _, repo := range list {
 		if repo.Hash == utils.SHARED_HASH {
 			continue
 		}
-		notsynced := checkRepo(repo)
+		checkRepo(p, &wg, repo, &notsynced)
 		if len(notsynced) > 0{
 			return notsynced
 		}
 	}
-
+	wg.Wait()
 	return nil
 }
 
-func checkRepo(repo *utils.Repository) []string {
-	//fmt.Printf("Name: %s, Hash:%s\n", repo.Name, repo.Hash)
-	var notsynced []string
+func checkRepo(p *ants.PoolWithFunc, wg * sync.WaitGroup, repo *utils.Repository, ret * []string) {
+	d := RepoNotSynced{
+		repo:repo,
+		notsynced: ret,
+	};
+	if(p.Running() < p.Cap()) {
+		wg.Add(1)
+		p.Invoke(&d)
+	}else{
+		doCheckRepo(&d)
+	}
+}
+func doCheckRepo(i interface{}) {
+	d := i.(*RepoNotSynced)
+	repo := d.repo
+	//var notsynced []string
 	dir := repo.Local
 	hash := repo.Hash
 	name := repo.Name
@@ -111,12 +139,12 @@ func checkRepo(repo *utils.Repository) []string {
 		if !utils.FileExists(restoreDir) {
 			utils.MkdirAll(restoreDir)
 		}
-		if err := ReadBinFileProcessRow(utils.GetTopTreeFolder()+"/"+path+".bin", checkRow, "", restoreDir, hash, name, repo.HashSuffix, &notsynced); err != nil {
-			return notsynced
+		if err := ReadBinFileProcessRow(utils.GetTopTreeFolder()+"/"+path+".bin", checkRow, "", restoreDir, hash, name, repo.HashSuffix, d.notsynced); err != nil {
+			return
 		}
 	}
-	utils.Debug("Notsynced:", notsynced)
-	return notsynced
+	//utils.Debug("Notsynced:", d.notsynced)
+	return
 }
 func checkRow(io *utils.IndexBinRow, args ...interface{}) error {
 	if io.Index == 0 || utils.IsFileModeDeleted(io.FileMode) {
@@ -137,7 +165,7 @@ func checkRow(io *utils.IndexBinRow, args ...interface{}) error {
 	hashSuffix := args[4].(string)
 	notsynced := args[5].(*[]string)
 	dest := restoreRootDir + relativePath + "/" + fileName
-	utils.SendToLocal(utils.MSG_PREFIX + "To verify file .../" + utils.Basename2(dest) + "/" + fileName)
+	utils.SendMsg("To verify file .../" + utils.Basename2(dest) + "/" + fileName)
 	fName, t, _ := GetFileNameModTimeAndSize(dest)
 	if t > 0 && fName != fileName {
 		fileName, _ = fixDuplicateFileName(fileName, io.Index)

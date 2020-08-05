@@ -142,7 +142,7 @@ public class NetUtil implements java.io.Serializable
     public static Map<String,String> loadSettings()
     {
         NetUtil.HttpReturn httpReturn = NetUtil.syncSendGetCommand("getsettings", null, false);
-        Map<String, String> props = new HashMap<String, String>();
+        Map<String, String> props = new HashMap<>();
         if(httpReturn.code == 500)
         {
             return props;
@@ -200,12 +200,9 @@ public class NetUtil implements java.io.Serializable
         String path = getJarPath();
         String exeFile = new File(path + "/" + program).getAbsolutePath();
         log.info("server.exe: " + exeFile);
-//        ProcessBuilder p = new ProcessBuilder();
-//        p.command(exeFile);
         try
         {
             Process ps = Runtime.getRuntime().exec(exeFile);
-//            Process ps = p.start();
             log.info("server pid:" + ps.pid());
             return true;
         }
@@ -246,7 +243,6 @@ public class NetUtil implements java.io.Serializable
 
     private static boolean isOS(String osName)
     {
-        //os.name=Windows 2000
         String name = System.getProperty("os.name").toUpperCase();
         if(name != null && name.indexOf(osName.toUpperCase()) >= 0) return true;
         return false;

@@ -364,7 +364,6 @@ func ResetUserAndInitLocalServer(userID string) {
 
 func initializeLocalServer() {
 	createFolders()
-	go StartRescanTimer()
 	//utils.Log = utils.NewLogger(utils.GetLogsFolder() + "/client.log");
 	//utils.OpenDB(utils.GetDataFolder() + "data.db")
 	HandleIncompleteTasks()
@@ -374,6 +373,7 @@ func initializeLocalServer() {
 	if n == 1 && argsWithoutProg[0] == "rescan" {
 		StartRescan(nil)
 	}
+	go StartRescanTimer()
 }
 
 func GetOpModeString(op uint8) string {
@@ -540,7 +540,7 @@ func createRepoFromRequest(values map[string][]string) utils.Repository {
 				repo.Remote = append(repo.Remote, p)
 			} else if n == "AnySync.net" {
 				m := make(map[string]string)
-				p := utils.CreateNewRemote(existingRemotes, utils.REMOTE_STORAGE_NAME, utils.REMOTE_TYPE_OFFICIAL, userID, m)
+				p := utils.CreateNewRemote(existingRemotes, utils.LoadAppParams().GetSelectedRemoteName(), utils.REMOTE_TYPE_OFFICIAL, userID, m)
 				userPrefix := utils.CurrentUser.Prefix
 				bucket := utils.CurrentUser.Bucket
 				p.Root = bucket + "/" + userPrefix + "/"

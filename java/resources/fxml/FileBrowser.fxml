@@ -46,7 +46,7 @@
                    </Button>
 
                    <HBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
-                       <TextField fx:id="pathText" editable="false" onAction="#pathTextFieldOnEnter" maxHeight="30.0" minHeight="20.0" prefWidth="1000">
+                       <TextField fx:id="pathText" editable="false"  maxHeight="30.0" minHeight="20.0" prefWidth="1000">
                            <HBox.margin>
                               <Insets left="10.0" />
                            </HBox.margin>

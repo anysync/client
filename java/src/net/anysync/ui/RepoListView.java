@@ -115,9 +115,6 @@ public class RepoListView extends javafx.scene.control.ListView<String> {
                 ImageView imageView = new ImageView(fxImage);
                 imageView.setFitHeight(40);
                 imageView.setFitWidth(40);
-//                setGraphic(imageView);
-//                setText("  " + item);
-//                setFont(Font.font("Tahoma", 18));
 
                 setText(null);
                 setBorder(null);

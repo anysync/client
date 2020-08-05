@@ -456,25 +456,25 @@ func WithKeepAliveDialer() grpc.DialOption {
 func TplHandler(w http.ResponseWriter, r *http.Request) {
 	utils.Debug("Enter TplHandler..........")
 	utils.Debugf("uri:%s, P:%s \n", r.RequestURI, r.URL.Path)
-	if strings.HasPrefix(r.URL.Path, "/tpl/create_repo.html") {
-		createRepo(w, r)
-		//}else if(strings.HasSuffix(r.URL.Path, "/tpl/chooseplan.html")){
-		//	choosePlan(w,r)
-	} else if strings.HasPrefix(r.URL.Path, "/tpl/create_default_repo.html") {
-		createDefaultRepo(w, r)
-	} else if strings.HasPrefix(r.URL.Path, "/tpl/handle_repo.html") {
-		handleRepo(w, r)
-		//}else if(strings.HasPrefix(r.URL.P, "/tpl/link_cloud.html")){
-		//	linkCloud(w, r);
-	} else if strings.HasPrefix(r.URL.Path, "/tpl/versions.html") {
-		versionsHandler(w, r)
-	} else if strings.HasPrefix(r.URL.Path, "/tpl/password.html") {
-		changePassword(w, r)
-	} else if strings.HasPrefix(r.URL.Path, "/tpl/mode.html") {
-		chooseModeOnClient(w, r)
-	} else if strings.HasPrefix(r.URL.Path, "/tpl/localrepos.html") {
-		chooseLocalRepos(w, r)
-	}
+	//if strings.HasPrefix(r.URL.Path, "/tpl/create_repo.html") {
+	//	createRepo(w, r)
+	//	//}else if(strings.HasSuffix(r.URL.Path, "/tpl/chooseplan.html")){
+	//	//	choosePlan(w,r)
+	//} else if strings.HasPrefix(r.URL.Path, "/tpl/create_default_repo.html") {
+	//	createDefaultRepo(w, r)
+	//if strings.HasPrefix(r.URL.Path, "/tpl/handle_repo.html") {
+	//	handleRepo(w, r)
+	//	//}else if(strings.HasPrefix(r.URL.P, "/tpl/link_cloud.html")){
+	//	//	linkCloud(w, r);
+	//} else if strings.HasPrefix(r.URL.Path, "/tpl/versions.html") {
+	//	versionsHandler(w, r)
+	//} else if strings.HasPrefix(r.URL.Path, "/tpl/password.html") {
+	//	changePassword(w, r)
+	//} else if strings.HasPrefix(r.URL.Path, "/tpl/mode.html") {
+	//	chooseModeOnClient(w, r)
+	//} else if strings.HasPrefix(r.URL.Path, "/tpl/localrepos.html") {
+	//	chooseLocalRepos(w, r)
+	//}
 }
 
 func getVersions(w http.ResponseWriter, r *http.Request) string{
@@ -645,75 +645,75 @@ func versionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func createRepo(w http.ResponseWriter, r *http.Request) {
-	baseFileName := "create_repo.html"
-	filename := path.Join("html", "tpl", baseFileName)
-	utils.Debug("In createRepo, fileName: ", filename)
-	utils.Debug("Enter create repo. url: ", r.RequestURI) // /rest/saverepo?txtFakeText=vm&name=repo1&encrypted=on&remote=gd2&newremote=googledrive&rname=&nfstext=
-
-	tmpl, err := template.ParseFiles(filename)
-	if err != nil {
-		utils.Debug(err)
-	}
-	u, _ := url.Parse(r.RequestURI)
-
-	remotes := utils.GetRemotesIncludingTemps() //  []string{"Google", "DBox"};//"'GoogleDrive', 'DBox'";
-	name := u.Query().Get("name")
-	b2Acct := u.Query().Get("b2acct")
-	accessKeyID := u.Query().Get("keyid")
-	if name != "" && accessKeyID == "" {
-		utils.AuthName = name
-	}
-	utils.Debug("Remote.size: ", len(remotes.Remote))
-	utils.Debug("~~~~~~~~ In CreateRepo. RemoteName: ", name, "; AuthToken: ", utils.AuthToken, "; AuthName:", utils.AuthName)
-	nfs := u.Query().Get("nfs")
-	if nfs != "" {
-		remotes = utils.SaveNewRemote(remotes, name, utils.REMOTE_TYPE_LOCAL_NFS, nfs, nil)
-	} else if b2Acct != "" {
-		m := make(map[string]string)
-		m["accessKey"] = u.Query().Get("accesskey")
-		m["account"] = b2Acct
-		m["bucket"] = u.Query().Get("bucket")
-		m["endpoint"] = "https://api.backblazeb2.com"
-		remotes = utils.SaveNewRemote(remotes, name, utils.REMOTE_TYPE_B2, "", m)
-	} else if accessKeyID != "" {
-		m := make(map[string]string)
-		m["accessKey"] = u.Query().Get("accesskey")
-		m["accessKeyID"] = accessKeyID
-		m["bucket"] = u.Query().Get("bucket")
-		m["endpoint"] = u.Query().Get("endpoint")
-		m["region"] = u.Query().Get("region")
-		remotes = utils.SaveNewRemote(remotes, name, utils.REMOTE_TYPE_S3, "", m)
-	} else if utils.AuthName != "" && utils.AuthToken != "" {
-		m := make(map[string]string)
-		m["token"] = utils.AuthToken
-		remotes = utils.SaveNewRemote(remotes, utils.AuthName, utils.RemoteType, "", m)
-	}
-	var keys []string
-	if utils.LoadConfig().IsOfficialSite() {
-		keys = append(keys, "AnySync.net") //value "AnySync.net" must match the one in createRepoFromRequest func
-	} else {
-		keys = append(keys, "My Server") //value "My Server" must match the one in createRepoFromRequest func
-	}
-	for _, val := range remotes.Remote {
-		if val.Name == utils.REMOTE_TYPE_SERVER_NAME || val.Name == utils.REMOTE_STORAGE_NAME {
-			continue
-		}
-		k := val.Name + " (" + val.Type + ")"
-		keys = append(keys, k)
-	}
-
-	data := RemoteData{
-		Name:    "",
-		Path:    "",
-		Remotes: keys,
-	}
-	utils.Debug("Before execute template, remotes.len: ", len(keys))
-	err = tmpl.ExecuteTemplate(w, baseFileName, data)
-	if err != nil {
-		panic(err)
-	}
-}
+//func createRepo(w http.ResponseWriter, r *http.Request) {
+//	baseFileName := "create_repo.html"
+//	filename := path.Join("html", "tpl", baseFileName)
+//	utils.Debug("In createRepo, fileName: ", filename)
+//	utils.Debug("Enter create repo. url: ", r.RequestURI) // /rest/saverepo?txtFakeText=vm&name=repo1&encrypted=on&remote=gd2&newremote=googledrive&rname=&nfstext=
+//
+//	tmpl, err := template.ParseFiles(filename)
+//	if err != nil {
+//		utils.Debug(err)
+//	}
+//	u, _ := url.Parse(r.RequestURI)
+//
+//	remotes := utils.GetRemotesIncludingTemps() //  []string{"Google", "DBox"};//"'GoogleDrive', 'DBox'";
+//	name := u.Query().Get("name")
+//	b2Acct := u.Query().Get("b2acct")
+//	accessKeyID := u.Query().Get("keyid")
+//	if name != "" && accessKeyID == "" {
+//		utils.AuthName = name
+//	}
+//	utils.Debug("Remote.size: ", len(remotes.Remote))
+//	utils.Debug("~~~~~~~~ In CreateRepo. RemoteName: ", name, "; AuthToken: ", utils.AuthToken, "; AuthName:", utils.AuthName)
+//	nfs := u.Query().Get("nfs")
+//	if nfs != "" {
+//		remotes = utils.SaveNewRemote(remotes, name, utils.REMOTE_TYPE_LOCAL_NFS, nfs, nil)
+//	} else if b2Acct != "" {
+//		m := make(map[string]string)
+//		m["accessKey"] = u.Query().Get("accesskey")
+//		m["account"] = b2Acct
+//		m["bucket"] = u.Query().Get("bucket")
+//		m["endpoint"] = "https://api.backblazeb2.com"
+//		remotes = utils.SaveNewRemote(remotes, name, utils.REMOTE_TYPE_B2, "", m)
+//	} else if accessKeyID != "" {
+//		m := make(map[string]string)
+//		m["accessKey"] = u.Query().Get("accesskey")
+//		m["accessKeyID"] = accessKeyID
+//		m["bucket"] = u.Query().Get("bucket")
+//		m["endpoint"] = u.Query().Get("endpoint")
+//		m["region"] = u.Query().Get("region")
+//		remotes = utils.SaveNewRemote(remotes, name, utils.REMOTE_TYPE_S3, "", m)
+//	} else if utils.AuthName != "" && utils.AuthToken != "" {
+//		m := make(map[string]string)
+//		m["token"] = utils.AuthToken
+//		remotes = utils.SaveNewRemote(remotes, utils.AuthName, utils.RemoteType, "", m)
+//	}
+//	var keys []string
+//	if utils.LoadConfig().IsOfficialSite() {
+//		keys = append(keys, "AnySync.net") //value "AnySync.net" must match the one in createRepoFromRequest func
+//	} else {
+//		keys = append(keys, "My Server") //value "My Server" must match the one in createRepoFromRequest func
+//	}
+//	for _, val := range remotes.Remote {
+//		if val.Name == utils.REMOTE_TYPE_SERVER_NAME || val.Name == utils.REMOTE_STORAGE_NAME {
+//			continue
+//		}
+//		k := val.Name + " (" + val.Type + ")"
+//		keys = append(keys, k)
+//	}
+//
+//	data := RemoteData{
+//		Name:    "",
+//		Path:    "",
+//		Remotes: keys,
+//	}
+//	utils.Debug("Before execute template, remotes.len: ", len(keys))
+//	err = tmpl.ExecuteTemplate(w, baseFileName, data)
+//	if err != nil {
+//		panic(err)
+//	}
+//}
 
 //func choosePlan(w http.ResponseWriter, r *http.Request) {
 //	d := make(map[string][]byte)
@@ -765,85 +765,85 @@ func getUserInfo() string {
 	}
 }
 
-func createDefaultRepo(w http.ResponseWriter, r *http.Request) {
-	baseFileName := "create_default_repo.html"
-	filename := path.Join("html", "tpl", baseFileName)
-	utils.Debug("In createRepo, fileName: ", filename)
-	utils.Debug("Enter create repo. url: ", r.RequestURI) // /rest/saverepo?txtFakeText=vm&name=repo1&encrypted=on&remote=gd2&newremote=googledrive&rname=&nfstext=
+//func createDefaultRepo(w http.ResponseWriter, r *http.Request) {
+//	baseFileName := "create_default_repo.html"
+//	filename := path.Join("html", "tpl", baseFileName)
+//	utils.Debug("In createRepo, fileName: ", filename)
+//	utils.Debug("Enter create repo. url: ", r.RequestURI) // /rest/saverepo?txtFakeText=vm&name=repo1&encrypted=on&remote=gd2&newremote=googledrive&rname=&nfstext=
+//
+//	tmpl, err := template.ParseFiles(filename)
+//	if err != nil {
+//		panic(err)
+//	}
+//	u, _ := url.Parse(r.RequestURI)
+//
+//	remotes := utils.GetRemotesIncludingTemps() //  []string{"Google", "DBox"};//"'GoogleDrive', 'DBox'";
+//	name := u.Query().Get("name")
+//	b2Acct := u.Query().Get("b2acct")
+//	accessKeyID := u.Query().Get("keyid")
+//	if name != "" && accessKeyID == "" {
+//		utils.AuthName = name
+//	}
+//	utils.Debug("Remote.size: ", len(remotes.Remote))
+//	utils.Debug("~~~~~~~~ In CreateRepo. RemoteName: ", name, "; AuthToken: ", utils.AuthToken, "; AuthName:", utils.AuthName)
+//	nfs := u.Query().Get("nfs")
+//	if nfs != "" {
+//		remotes = utils.SaveNewRemote(remotes, name, utils.REMOTE_TYPE_LOCAL_NFS, nfs, nil)
+//	} else if b2Acct != "" {
+//		m := make(map[string]string)
+//		m["accessKey"] = u.Query().Get("accesskey")
+//		m["account"] = b2Acct
+//		m["bucket"] = u.Query().Get("bucket")
+//		m["endpoint"] = "https://api.backblazeb2.com"
+//		remotes = utils.SaveNewRemote(remotes, name, utils.REMOTE_TYPE_B2, "", m)
+//	} else if accessKeyID != "" {
+//		m := make(map[string]string)
+//		m["accessKey"] = u.Query().Get("accesskey")
+//		m["accessKeyID"] = accessKeyID
+//		m["bucket"] = u.Query().Get("bucket")
+//		m["endpoint"] = u.Query().Get("endpoint")
+//		m["region"] = u.Query().Get("region")
+//		remotes = utils.SaveNewRemote(remotes, name, utils.REMOTE_TYPE_S3, "", m)
+//	} else if utils.AuthName != "" && utils.AuthToken != "" {
+//		m := make(map[string]string)
+//		m["token"] = utils.AuthToken
+//		remotes = utils.SaveNewRemote(remotes, utils.AuthName, utils.RemoteType, "", m)
+//	}
+//	usr, err := user.Current()
+//	defaultPath := usr.HomeDir
+//	if utils.IsWindows() {
+//		defaultPath += "\\AnySync"
+//	} else {
+//		defaultPath += "/AnySync"
+//	}
+//	if !utils.FileExists(defaultPath) {
+//		utils.Mkdir(defaultPath)
+//	}
+//	data := RemoteData{
+//		Name: "",
+//		Path: defaultPath,
+//	}
+//	err = tmpl.ExecuteTemplate(w, baseFileName, data)
+//	if err != nil {
+//		panic(err)
+//	}
+//}
 
-	tmpl, err := template.ParseFiles(filename)
-	if err != nil {
-		panic(err)
-	}
-	u, _ := url.Parse(r.RequestURI)
-
-	remotes := utils.GetRemotesIncludingTemps() //  []string{"Google", "DBox"};//"'GoogleDrive', 'DBox'";
-	name := u.Query().Get("name")
-	b2Acct := u.Query().Get("b2acct")
-	accessKeyID := u.Query().Get("keyid")
-	if name != "" && accessKeyID == "" {
-		utils.AuthName = name
-	}
-	utils.Debug("Remote.size: ", len(remotes.Remote))
-	utils.Debug("~~~~~~~~ In CreateRepo. RemoteName: ", name, "; AuthToken: ", utils.AuthToken, "; AuthName:", utils.AuthName)
-	nfs := u.Query().Get("nfs")
-	if nfs != "" {
-		remotes = utils.SaveNewRemote(remotes, name, utils.REMOTE_TYPE_LOCAL_NFS, nfs, nil)
-	} else if b2Acct != "" {
-		m := make(map[string]string)
-		m["accessKey"] = u.Query().Get("accesskey")
-		m["account"] = b2Acct
-		m["bucket"] = u.Query().Get("bucket")
-		m["endpoint"] = "https://api.backblazeb2.com"
-		remotes = utils.SaveNewRemote(remotes, name, utils.REMOTE_TYPE_B2, "", m)
-	} else if accessKeyID != "" {
-		m := make(map[string]string)
-		m["accessKey"] = u.Query().Get("accesskey")
-		m["accessKeyID"] = accessKeyID
-		m["bucket"] = u.Query().Get("bucket")
-		m["endpoint"] = u.Query().Get("endpoint")
-		m["region"] = u.Query().Get("region")
-		remotes = utils.SaveNewRemote(remotes, name, utils.REMOTE_TYPE_S3, "", m)
-	} else if utils.AuthName != "" && utils.AuthToken != "" {
-		m := make(map[string]string)
-		m["token"] = utils.AuthToken
-		remotes = utils.SaveNewRemote(remotes, utils.AuthName, utils.RemoteType, "", m)
-	}
-	usr, err := user.Current()
-	defaultPath := usr.HomeDir
-	if utils.IsWindows() {
-		defaultPath += "\\AnySync"
-	} else {
-		defaultPath += "/AnySync"
-	}
-	if !utils.FileExists(defaultPath) {
-		utils.Mkdir(defaultPath)
-	}
-	data := RemoteData{
-		Name: "",
-		Path: defaultPath,
-	}
-	err = tmpl.ExecuteTemplate(w, baseFileName, data)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func handleRepo(w http.ResponseWriter, r *http.Request) {
-	u, _ := url.Parse(r.RequestURI)
-	utils.Debug("handleRepo.Request: ", u.RequestURI())
-	remote := u.Query().Get("newremote")
-	if remote != "" && remote != utils.REMOTE_TYPE_S3 && remote != utils.REMOTE_TYPE_B2 {
-		utils.AuthToken = ""
-		utils.AuthName = u.Query().Get("rname")
-		utils.RemoteType = remote
-		authUrl := utils.GetAuthUrl(remote)
-		go utils.StartServer(remote)
-		utils.Debug("AuthURL: ", authUrl, ";\nAuthName:", utils.AuthName)
-		w.Write([]byte(authUrl))
-	}
-	//http.Redirect(w, r, authUrl, 301)
-}
+//func handleRepo(w http.ResponseWriter, r *http.Request) {
+//	u, _ := url.Parse(r.RequestURI)
+//	utils.Debug("handleRepo.Request: ", u.RequestURI())
+//	remote := u.Query().Get("newremote")
+//	if remote != "" && remote != utils.REMOTE_TYPE_S3 && remote != utils.REMOTE_TYPE_B2 {
+//		utils.AuthToken = ""
+//		utils.AuthName = u.Query().Get("rname")
+//		utils.RemoteType = remote
+//		authUrl := utils.GetAuthUrl(remote)
+//		go utils.StartServer(remote)
+//		utils.Debug("AuthURL: ", authUrl, ";\nAuthName:", utils.AuthName)
+//		w.Write([]byte(authUrl))
+//	}
+//	//http.Redirect(w, r, authUrl, 301)
+//}
 
 func SaveRepo(w http.ResponseWriter, r *http.Request) {
 	utils.Debug("Enter save repo. url: ", r.RequestURI) // /rest/saverepo?txtFakeText=vm&name=repo1&encrypted=on&remote=gd2&newremote=googledrive&rname=&nfstext=
@@ -1249,10 +1249,21 @@ func doQuickVerify(hash string) (bool, int, []string) {
 }
 
 func deepVerify(hash string) {
-	b, totalChangedRows, files := doQuickVerify(hash)
-	if b {
-		utils.Debug("TotalChanges:", totalChangedRows, "; files: ", strings.Join(files, ","))
-		//utils.SendToLocal(fmt.Sprintf("qverify1:%d:%s", totalChangedRows, strings.Join(files, ",")))
+	changes := checkChanges(hash,true)
+	var  files []string
+	utils.SendToLocal(utils.MSG_PREFIX + "Check if all files have been synced...")
+
+	changes.Range(func(k, v interface{}) bool {
+		folder := k.(string)
+		files = append(files, folder)
+		return true
+	})
+	//b, totalChangedRows, files := doQuickVerify(hash)
+
+	if len(files) > 0 {
+		//utils.Debug("TotalChanges:", totalChangedRows, "; files: ", strings.Join(files, ","))
+		utils.SendToLocal(fmt.Sprintf("qverify1:%d:%s", len(files), strings.Join(files, ",")))
+		return
 	}
 	//now check cloud files
 	utils.SendToLocal(utils.MSG_PREFIX + "To verify cloud files...")

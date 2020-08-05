@@ -42,7 +42,7 @@ func processRow(io *utils.IndexBinRow, args ...interface{}) error {
 	hashSuffix := args[4].(string)
 	dest := restoreRootDir + "/" + relativePath + "/" + fileName
 	//utils.Debug("destFile:", dest)
-	utils.SendToLocal(utils.MSG_PREFIX + "To restore file " + dest)
+	utils.SendMsg( "To restore file " + dest)
 	fName, t, _ := GetFileNameModTimeAndSize(dest)
 	if t > 0 && fName != fileName {
 		fileName, _ = fixDuplicateFileName(fileName, io.Index)

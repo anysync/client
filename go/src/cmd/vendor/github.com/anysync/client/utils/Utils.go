@@ -29,6 +29,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 	"unicode"
 )
 
@@ -1114,7 +1115,6 @@ type CloudPath struct{
 	FileID     string
 }
 
-var REMOTE_STORAGE_NAME = LoadAppParams().GetSelectedRemoteName();
 
 //@path "1001:AnySync1/b330d3d11aa4447649020adbd389ea6ed5a9b751299c859e08106fcb/objects/35/ea/2d/79bcf5c0734edb77a4358834ed68d73281ee81b26356347717.obj@ef2288c819c3d12a5009f9a85e1a232d033b9be0#4_zee48aadaf1be739e60250918_f108842cf70647ab7_d20191228_m010713_c000_v0001063_t0049"
 //@return encrypted, compressed, normal, remoteName, cloudPath (CloudPath is "SHA1#FileID" )
@@ -1131,7 +1131,7 @@ func DecodePath(path string) * CloudPath{
 	pos := strings.Index(path, ":")
 	cp.RemoteName = path[3:pos]
 	cloudPath := path[pos+1:]
-	if(cp.RemoteName == REMOTE_STORAGE_NAME){
+	if(cp.RemoteName == LoadAppParams().GetSelectedRemoteName()){
 		pos := strings.Index(cloudPath, META_PATH_ID_SEPARATOR)
 		var text string
 		if  pos > 0 {
@@ -1281,3 +1281,7 @@ func GetFullPathHash(relativePath string) []string {
 	return list
 }
 
+func TimeTrack(start time.Time, name string) {
+	elapsed := time.Since(start)
+	Info( name, "took", elapsed)
+}

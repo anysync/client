@@ -209,13 +209,11 @@ func SaveKeys(password []byte,  keygen bool, encKey, authKey, accessToken, rsaPu
 		if err != nil {
 			return nil, nil, err
 		}
-		Debug("In generateKeyFromPassword, password:", hex.EncodeToString(password), "; salt:", hex.EncodeToString(salt), "; keyLen: ", len(k))
 
 		copy(key[:], k)
 	} else {
 		copy(key[:], password)
 	}
-	Debug("In SaveKeys to file: " + fileName, ". Auth:" + hex.EncodeToString(password), ".  Salt is ", hex.EncodeToString(salt), "; Key is " , fmt.Sprintf("%x", key))
 
 	attribs.Attribs["salt"] = salt
 	bs, _ := Encrypt(encKey, &key)

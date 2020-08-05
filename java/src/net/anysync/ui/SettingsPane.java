@@ -35,8 +35,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-;
-
 public class SettingsPane extends BorderPane implements UiUtil.DialogSetter
 {
     final static Logger log = LogManager.getLogger(SettingsPane.class);
@@ -118,10 +116,6 @@ public class SettingsPane extends BorderPane implements UiUtil.DialogSetter
             if(oldValue != null && !newValue.equals(oldValue) && newValue.equals(options.get(0)))
             {
                 signout("Complete sign out is required for this change. Proceed and sign out NOW?");
-//                DirectoryChooser fileChooser = new DirectoryChooser();
-//                fileChooser.setTitle("Choose a local directory for syncing");
-//                File f = fileChooser.showDialog(this.getScene().getWindow());
-//                System.out.println("Choosen:" + f.getAbsolutePath());
             }
         });
         HBox.setHgrow(_modes, Priority.ALWAYS);

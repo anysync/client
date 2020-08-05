@@ -6,17 +6,19 @@
 package net.anysync.ui;
 
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import net.anysync.util.FileUtil;
 import net.anysync.util.UiUtil;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-
-;import java.io.File;
+import java.io.File;
 import java.io.IOException;
 
 import static net.anysync.util.NetUtil.getJarPath;
@@ -26,7 +28,7 @@ public class ChooseEdition extends BorderPane  implements UiUtil.DialogSetter
     final static Logger log = LogManager.getLogger(ChooseEdition .class);
 
     public final static int WIDTH = 550;
-    public final static int HEIGHT = 120;
+    public final static int HEIGHT = 140;
     private CheckBox _isSelfEdition;
 
     public ChooseEdition()
@@ -57,6 +59,36 @@ public class ChooseEdition extends BorderPane  implements UiUtil.DialogSetter
         selfhosted.setSelected(false);
         pane.add(selfhosted, 0, 2);
 
+        Button ok = new Button("Ok");
+        ok.setOnAction(e -> {
+            String dir = System.getProperty("user.home") + "/.AnySync/";
+            String dest = dir + "anysync.rc";
+            File f = new File(dir);
+            if(!f.exists())
+            {
+                f.mkdir();
+            }
+            String path = getJarPath();
+            String file = _isSelfEdition.isSelected()?"self.rc":"anysync.rc";
+            System.out.println("file:" + file + "; iselected:" + _isSelfEdition.isSelected());
+            try
+            {
+                FileUtil.copyFile(new File(path + "/" + file), new File(dest));
+            }
+            catch(IOException ie)
+            {
+                log.error("Cannot copy rc file to " + dest);
+            }
+            _stage.hide();
+            synchronized(Main.class)
+            {
+                Main.class.notifyAll();
+            }
+        });
+        setBottom(ok);
+        ok.setPrefSize(100, 28);
+        BorderPane.setMargin(ok, new Insets(20,20,20,20));
+        setAlignment(ok, Pos.CENTER);
 
         official.selectedProperty().addListener((observable, oldValue, newValue) ->{
             selfhosted.setSelected(!newValue);
@@ -68,46 +100,34 @@ public class ChooseEdition extends BorderPane  implements UiUtil.DialogSetter
 
     }
 
+    private static Stage _stage;
     public static void show()
     {
         Platform.runLater(()-> {
+            Stage stage = new Stage();
+            _stage = stage;
+            stage.getIcons().add(Main.getImage("/images/app128.png"));
+            Dialog<ButtonType> dialog = new Dialog<>();
             ChooseEdition m = new ChooseEdition();
-            UiUtil.createDialog(m, "Choose Edition", WIDTH, HEIGHT + 60, m, false);
+            Scene scene = new Scene(m, WIDTH, HEIGHT);
+            stage.setScene(scene);
+            stage.getScene().getStylesheets().add(Main.getResource("/css/main.css").toExternalForm());
+            stage.getScene().getWindow().addEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST, new EventHandler<WindowEvent>()
+            {
+                @Override
+                public void handle(WindowEvent windowEvent)
+                {
+                    windowEvent.consume();
+                }
+            });
+            stage.setTitle("Choose Mode");
+
+            stage.show();
         });
     }
 
     public void setDialog(Dialog d)
     {
-        DialogPane dialogPane = d.getDialogPane();
-        final Button btOk = (Button) dialogPane.lookupButton(ButtonType.OK);
-        btOk.addEventFilter(
-                ActionEvent.ACTION,
-                event -> {
-                    String dir = System.getProperty("user.home") + "/.AnySync/";
-                    String dest = dir + "anysync.rc";
-                    File f = new File(dir);
-                    if(! f.exists())
-                    {
-                        f.mkdir();
-                    }
-                    String path = getJarPath();
-                    String file = _isSelfEdition.isSelected() ? "self.rc" : "anysync.rc";
-                    System.out.println( "file:" + file + "; iselected:" + _isSelfEdition.isSelected() );
-                    try
-                    {
-                        FileUtil.copyFile(new File(path + "/" + file), new File(dest));
-                    }
-                    catch(IOException e)
-                    {
-                        log.error("Cannot copy rc file to " + dest);
-                    }
-                    synchronized(Main.class)
-                    {
-                        Main.class.notifyAll();
-                    }
-                }
-        );
-
     }
 
 }

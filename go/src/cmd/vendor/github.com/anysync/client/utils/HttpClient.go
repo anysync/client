@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -22,6 +23,22 @@ func SendToLocal(command string)error {
 		go sendEmptyMsg();
 	}
 	return SendToLocalWithDelay(command, 0)
+}
+
+var lastSentMsg = time.Now()
+var msgMutex = &sync.Mutex{}
+//for sending informational message, with rate limiting
+func SendMsg(msg string){
+	msgMutex.Lock()
+	defer msgMutex.Unlock()
+	elapsed := time.Since(lastSentMsg)
+
+	if(elapsed.Milliseconds()) < 200{
+		return;
+	}
+
+	lastSentMsg = time.Now()
+	SendToLocal(MSG_PREFIX + msg)
 }
 
 //@param delay in seconds

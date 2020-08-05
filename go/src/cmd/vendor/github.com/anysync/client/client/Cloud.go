@@ -33,20 +33,20 @@ func init() {
 	//RcloneInit()
 }
 
-func isLocalPath(path string) bool {
-	if strings.HasPrefix(path, "/")  {
-		return true
-	}
-	if(len(path) >= 2){
-		if(  path[1] == ':' && (path[0] != utils.REMOTE_TYPE_SERVER_NAME[0] || path[0] != utils.REMOTE_STORAGE_NAME[0]) ){
-			return true;
-		}
-		if(path[0] == '\\' && path[1] == '\\'  ) {
-			return true;
-		}
-	}
-	return false
-}
+//func isLocalPath(path string) bool {
+//	if strings.HasPrefix(path, "/")  {
+//		return true
+//	}
+//	if(len(path) >= 2){
+//		if(  path[1] == ':' && (path[0] != utils.REMOTE_TYPE_SERVER_NAME[0] || path[0] != utils.LoadAppParams().GetSelectedRemoteName()[0]) ){
+//			return true;
+//		}
+//		if(path[0] == '\\' && path[1] == '\\'  ) {
+//			return true;
+//		}
+//	}
+//	return false
+//}
 
 func CompressAndUploadPack(files []*utils.FileMeta, deletes  *syncmap.Map, repository * utils.Repository) ([]*utils.FileMeta, * utils.FileMeta, error) {
 	var err error
@@ -56,7 +56,7 @@ func CompressAndUploadPack(files []*utils.FileMeta, deletes  *syncmap.Map, repos
 	if !utils.FileExists(packFolder) {
 		utils.MkdirAll(packFolder)
 	}
-	utils.SendToLocal(utils.MSG_PREFIX + "Compress & encrypt pack file: " + file)
+	utils.SendMsg( "Compress & encrypt pack file: " + file)
 	utils.Debugf("TmpPackFile:%s, fileMetas.count: %d", packFile, len(files))
 	isEncrypted := repository.EncryptionLevel == 1
 	//DON'T remove it here defer utils.RemoveFile(packFile)
@@ -235,7 +235,7 @@ func CloudCopyUnLz4File(fileMeta * utils.FileMeta, destFile string, skipDecrypt 
 				continue
 			}
 			cpath := path[3:]
-			if(cpath[0:1] == utils.REMOTE_STORAGE_NAME){
+			if(cpath[0:1] == utils.LoadAppParams().GetSelectedRemoteName()){
 				pos := strings.Index(cpath, utils.META_PATH_ID_SEPARATOR)
 				if(pos > 0){
 					cpath = cpath[0:pos];
@@ -381,7 +381,7 @@ func CloudUploadFile(srcFile string,  destFile * string, remote * utils.RemoteOb
 				return err, false;
 			}
 		}else{
-			if(remote.Name == utils.REMOTE_STORAGE_NAME) {
+			if(remote.Name == utils.LoadAppParams().GetSelectedRemoteName()) {
 				* destFile = fdst.Root() + tokens[size-1];
 			}else {
 				* destFile = destFull;

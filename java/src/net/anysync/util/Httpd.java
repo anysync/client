@@ -52,10 +52,6 @@ public class Httpd implements java.io.Serializable
                     Thread.sleep(1000);
                 } catch(InterruptedException e){ }
                 Platform.runLater(()->{
-//                    Stage s = Main.getCurrentStage();
-//                    if(s != null) s.close();
-//                    UiUtil.fatalError("Info", "Another instance is running. Exit now.");
-
                     NetUtil.LOCAL_URL_PREFIX = "http://127.0.0.1:" + port + "/";
                     NetUtil.syncSendGetCommand("toFront", null, false);
                     System.exit(0);
@@ -127,7 +123,7 @@ public class Httpd implements java.io.Serializable
             else if(url.startsWith("/scanDone"))
             {
                 Main.setStatus("Finished scanning.");
-                FileBrowserMain.getFileBrowserController().reloadButtonClicked(null);
+                FileBrowserMain.getFileBrowserController().reloadButtonClicked();
             }
             else if(url.startsWith("/scanning"))
             {
@@ -184,6 +180,7 @@ public class Httpd implements java.io.Serializable
             }
             else if(url.startsWith("/qverify"))
             {
+                Main.setStatus("");
                 char c = url.charAt(8);
                 if(c == '0')
                 {
@@ -235,7 +232,7 @@ public class Httpd implements java.io.Serializable
             }
             else if(url.startsWith("/shutdown"))
             {
-//                QMetaObject::invokeMethod (gStatusObject, "shutdown", Qt::QueuedConnection);
+                System.exit(0);
             }
             else if(url.indexOf("done") >= 0)
             {

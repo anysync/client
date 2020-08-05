@@ -11,6 +11,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.stage.Stage;
 import net.anysync.ui.Main;
 
 import java.util.Map;
@@ -25,6 +26,12 @@ public class UiUtil implements java.io.Serializable
     public static boolean createDialog(Node content, String title, double width, double height, DialogSetter setter, boolean hasCancelBtn)
     {
         Dialog<ButtonType> dialog = new Dialog<>();
+
+        Object o = dialog.getDialogPane().getScene().getWindow();
+        if(o != null && o instanceof Stage)
+        {
+            ((Stage)o).getIcons().add(Main.getImage("/images/app128.png"));
+        }
         dialog.setTitle(title);
         if(hasCancelBtn) dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
         else dialog.getDialogPane().getButtonTypes().addAll( ButtonType.OK);

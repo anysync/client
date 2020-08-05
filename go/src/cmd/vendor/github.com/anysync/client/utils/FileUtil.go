@@ -128,12 +128,6 @@ func Extname(path string) string {
 	return filepath.Ext(path)
 }
 
-//Return upper level directory. e.g. for file "/home/winner/tmp/test.pdf", it returns "/home/winner"
-// for directory "/home/winner/tmp/", it returns "/home/winner";
-//for directory "/home/winner/tmp", it returns "/home"
-func GetParentDir(path string) string {
-	return filepath.Dir(filepath.Dir(path))
-}
 
 // S return the S of the given filename.
 // Returns 0 if the file does not exist or if the file S cannot be determined.

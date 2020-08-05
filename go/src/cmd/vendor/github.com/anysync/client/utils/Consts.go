@@ -164,8 +164,6 @@ const (
 	CLIENTS_DAT_FILE = "clients.dat"
 
 	DAT_KEY_PREFIX = "X"
-
-	RESCAN_INTERVAL_IN_SECONDS = 900  //15 minutes
 )
 const GB int64 = 1000000000
 const TYPE_MASK uint32 = 0xFFF00000

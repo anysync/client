@@ -48,7 +48,6 @@ type Rescan struct {
 	isMaxReached           bool
 	shareState             int32
 	owner                    string
-	isGuiRenaming           bool
 	keepCorruptedFile bool
 	filter   *FilterEx
 }
@@ -120,7 +119,7 @@ func StartRescan(f func([]*utils.ModifiedFolderExt) error) bool{
 	return true
 }
 
-func RescanFolders(folders []string, f func([]*utils.ModifiedFolderExt) error, isNewRepo bool, contactServerEvenNoChange int, isGuiRenaming bool) bool {
+func RescanFolders(folders []string, f func([]*utils.ModifiedFolderExt) error, isNewRepo bool, contactServerEvenNoChange int, nonRecursiveScan bool) bool {
 	if !scanStart() {
 		return false
 	}
@@ -128,15 +127,15 @@ func RescanFolders(folders []string, f func([]*utils.ModifiedFolderExt) error, i
 	utils.Debug("Enter RescanFolders. folders:", folders)
 	folderEx, myShares, shared := foldersToFolderEx(folders, isNewRepo)
 	if(myShares != nil && len(myShares) > 0) {
-		_, errMsg = rescanFolderEx(myShares, "", f, contactServerEvenNoChange, utils.REPO_SHARE_STATE_OWNER, isGuiRenaming, false)
+		_, errMsg = rescanFolderEx(myShares, "", f, contactServerEvenNoChange, utils.REPO_SHARE_STATE_OWNER, nonRecursiveScan, false)
 	}
 	if(shared != nil && len(shared) > 0) {
 		for owner, shares := range shared{
-			_, errMsg=rescanFolderEx(shares, owner, f, contactServerEvenNoChange, utils.REPO_SHARE_STATE_SHARE, isGuiRenaming, false)
+			_, errMsg=rescanFolderEx(shares, owner, f, contactServerEvenNoChange, utils.REPO_SHARE_STATE_SHARE, nonRecursiveScan, false)
 		}
 	}
 	if(len(folderEx) > 0) {
-		_, errMsg=rescanFolderEx(folderEx,  "", f, contactServerEvenNoChange, utils.REPO_SHARE_STATE_ALL, isGuiRenaming, false)
+		_, errMsg=rescanFolderEx(folderEx,  "", f, contactServerEvenNoChange, utils.REPO_SHARE_STATE_ALL, nonRecursiveScan, false)
 	}
 	scanDone(errMsg)
 	return true
@@ -156,7 +155,7 @@ var toRescan bool
 /**
 @param contactServerEvenNoChange 0: don't contact server if no change ; 1: contact server even if no change; 2: don't contact server anyway
  */
-func rescanFolderEx(folders []FolderEx, owner string,  f func([]*utils.ModifiedFolderExt) error, contactServerEvenNoChange int, shareState int32, isGuiRenaming bool, keepCorruptedFile bool) (*Rescan, string) {
+func rescanFolderEx(folders []FolderEx, owner string,  f func([]*utils.ModifiedFolderExt) error, contactServerEvenNoChange int, shareState int32, nonRecursiveScan bool, keepCorruptedFile bool) (*Rescan, string) {
 	if(utils.CurrentUser == nil){
 		return nil, "";
 	}
@@ -186,11 +185,8 @@ func rescanFolderEx(folders []FolderEx, owner string,  f func([]*utils.ModifiedF
 		for {
 			utils.Debug("To create new rescan obj")
 			rescan := NewRescan()
-			rescan.isGuiRenaming = isGuiRenaming;
 			rescan.keepCorruptedFile = keepCorruptedFile
-			if rescan.isGuiRenaming {
-				rescan.recursively = false;
-			}
+			rescan.recursively = !nonRecursiveScan;
 			if(shareState != utils.REPO_SHARE_STATE_ALL){
 				rescan.recursively = false;
 				if(shareState == utils.REPO_SHARE_STATE_SHARE) {
@@ -310,10 +306,28 @@ func StartRescanTimer(){
 			break;
 		}
 		t2 := time.Now().Unix();
-		if SyncState != SYNC_STATE_SYNCING && (t2 - lastScanTime) > utils.RESCAN_INTERVAL_IN_SECONDS {
-			utils.Info("Rescan after", utils.RESCAN_INTERVAL_IN_SECONDS, " seconds of no-scan" )
-			lastScanTime = time.Now().Unix()
-			StartRescan(nil)
+		if SyncState != SYNC_STATE_SYNCING && (t2 - lastScanTime) > int64(60 * config.ScanInterval)  {
+			utils.Info("Rescan after", config.ScanInterval, " minutes of no-scan" )
+			changes := checkChanges("",false)
+			var recursiveFolders, folders []string
+			changes.Range(func(k, v interface{}) bool {
+				b := v.(bool)
+				folder := k.(string)
+				if(b){
+					recursiveFolders = append(recursiveFolders, folder)
+				}else {
+					folders = append(folders, folder)
+				}
+				return true
+			})
+			if len(recursiveFolders) > 0 {
+				go RescanFolders(recursiveFolders, nil, false, 0, false)
+			}
+			if len(folders) > 0 {
+				go RescanFolders(folders, nil, false, 0, true)
+			}
+
+
 		}
 	}
 }
@@ -473,7 +487,7 @@ func (this *Rescan) rescanDirectory(directoryAbsPath string, currentRelativePath
 				utils.Debug("deleted dir. relpath: ", relPath, "; fileNameKey: ", fileNameKey)
 				newRow := updateRowAt(pathBin, item.Index, fileNameKey, nil,  &dirNameHash, item.FileMode, utils.MODE_DELETED_DIRECTORY)
 				newModRow,_ := AddRow(mfolder, item.Index, utils.MODE_DELETED_DIRECTORY, &newRow, item.Name, true, this)
-				if !this.isGuiRenaming {
+				if this.recursively {
 					processed := make(map[string]bool)
 					this.recursivelyDeleteSubs(utils.GetFolderPathHash(relPath), processed)
 				}else{
@@ -688,7 +702,7 @@ func (this *Rescan) fixRenaming() {
 				row.Row = newRow
 			} else if opMode == utils.MODE_NEW_FILE || (opMode == utils.MODE_NEW_DIRECTORY && !this.ignoreDirectory) {
 				hash := fileInfo.Hash // this.fileHashMap[fKey];//getHash(absPath, opMode == utils.MODE_NEW_DIRECTORY, relativePath)
-				if this.isGuiRenaming && opMode == utils.MODE_NEW_DIRECTORY {
+				if !this.recursively && opMode == utils.MODE_NEW_DIRECTORY {
 					for  _,d := range this.deletedFiles {
 						data := d[0];
 						fileNameKey := utils.CalculateFileNameKey(fileInfo.Name, fileInfo.IsDir, folder.FolderHash, folder.Repository.HashSuffix)
@@ -871,7 +885,7 @@ func (rescan Rescan) rpcSync(headers map[string]string,   notify bool,  f func([
 	msg.Folders = make([]*utils.ModifiedFolder, n)
 
 	var wg sync.WaitGroup
-	p, _ := ants.NewPoolWithFunc(100, func(i interface{}) {
+	p, _ := ants.NewPoolWithFunc(50, func(i interface{}) {
 		encryptFileName(i)
 		wg.Done()
 	})
@@ -1734,6 +1748,7 @@ func containsFolderExt(folders []*utils.ModifiedFolderExt, folderHash string) *u
 }
 
 func ClearScan() {
+	lastScanTime = time.Now().Unix()
 	_fsMap = new(syncmap.Map)
 	gUploadedBytes = 0;
 	utils.RemoveAllSubItems(utils.GetTopTmpFolder() + "/cache")
@@ -2084,6 +2099,15 @@ func (this *Rescan)  FilterFile(path string, file os.FileInfo) bool {
 	return this.filter.Filter.Include(file.Name(), file.Size(), file.ModTime())
 }
 
+func  FilterFile(path string, file os.FileInfo) bool {
+	filter := getFilterFromConfig()
+	filter.update()
+	b := filter.Filter.Include(path, file.Size(), file.ModTime())
+	if !b {
+		return false
+	}
+	return filter.Filter.Include(file.Name(), file.Size(), file.ModTime())
+}
 
 func createBucketIfNecessary()  {
 	config := utils.LoadConfig()

@@ -92,6 +92,7 @@ type Config struct {
 	Proxy         Proxy;
 	LogLevel      int; //0:debug; 1:info; 2:warning; 3:error; 4:critical
 	Locals          string;
+	ScanInterval    int; //in minutes
 	//Repository    []Repository;
 }
 
@@ -305,7 +306,7 @@ func GetShareFolderList(repos []*Repository)[]*Repository {
 						repo.Local = GetTopShareFolder() + HashToPath(shareFolder.Hash) + "/"
 						repo.ShareState = REPO_SHARE_STATE_SHARE
 						for _, r := range repos{
-							if(len(r.Remote) > 0 && (r.Remote[0].Name == REMOTE_TYPE_SERVER_NAME || r.Remote[0].Name == REMOTE_STORAGE_NAME)){
+							if(len(r.Remote) > 0 && (r.Remote[0].Name == REMOTE_TYPE_SERVER_NAME || r.Remote[0].Name == LoadAppParams().GetSelectedRemoteName())){
 								repo.Remote = r.Remote;
 								break
 							}
@@ -441,7 +442,7 @@ func getDefaultConfig() *Config{
 		PackMinSize:   PACK_FILE_SIZE_MIN_THRESHOLD,
 		ServerAddress: p.Server,
 		TlsEnabled:    p.TlsEnabled,
-		//TlsSkipVerify:     p.TlsSkipVerify,
+		ScanInterval:    10,
 		RateLimit:     0,
 		ThreadCount:   4,
 		Excluded:      DEFAULT_EXCLUDED,

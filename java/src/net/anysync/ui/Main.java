@@ -62,11 +62,6 @@ public class Main extends Application
 
     private static ResourceBundle resourceBundle;
 
-    public static ResourceBundle getBundle()
-    {
-        return resourceBundle;
-    }
-
     @Override
     public void start(Stage stage) throws Exception
     {
@@ -76,7 +71,6 @@ public class Main extends Application
 
         if(AppUtil.currentFolderExists())
         {
-//            LoginController.openChooseMode(stage);
             LoginController.openMainPane(stage);
             if(minimized) minimize(stage);
             stage.getScene().getWindow().addEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST, this::closeWindowEvent);
@@ -188,11 +182,6 @@ public class Main extends Application
         }
     }
 
-    public  static void setResources(FXMLLoader fxmlLoader)
-    {
-        fxmlLoader.setResources(ResourceBundle.getBundle(AppUtil.I18N, Locale.getDefault()));
-    }
-
     private static ContextMenu contextMenu;
     private static void initTray()
     {
@@ -201,11 +190,15 @@ public class Main extends Application
             if(!SystemTray.isSupported()) return;
             contextMenu = new ContextMenu();
 
-            javafx.scene.control.MenuItem item = new javafx.scene.control.MenuItem();
-            item.setOnAction(e -> {
-                System.exit(0);
-            });
+            javafx.scene.control.MenuItem item;
+            item = new javafx.scene.control.MenuItem();
+            item.setOnAction(e -> System.exit(0));
             item.setText("Exit");
+            contextMenu.getItems().add(item);
+            item = new javafx.scene.control.MenuItem();
+            item.setOnAction(e -> System.exit(0));
+            item.setText("AnySync (Build " + BUILD + ")");
+            item.setDisable(true);
             contextMenu.getItems().add(item);
 
             ImageIcon image = new ImageIcon(getResource("/images/app16.png"));
@@ -226,8 +219,6 @@ public class Main extends Application
                             }
                         }
                     });
-
-
                 }
             });
 
@@ -273,7 +264,7 @@ public class Main extends Application
             appender.setMaxFileSize("10MB");
             appender.setLayout(new PatternLayout("%d{HH:mm:ss}  %-5.5p  %t %m%n"));
             Logger.getRootLogger().addAppender(appender);
-            Logger.getRootLogger().setLevel((Level) Level.INFO);
+            Logger.getRootLogger().setLevel(Level.INFO);
             log.info("App starting...");
         }
         catch(IOException e)

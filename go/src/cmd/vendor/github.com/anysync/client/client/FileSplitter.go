@@ -17,7 +17,7 @@ import (
 
 func createChunk(repository * utils.Repository, chnker *utils.Chunker, partFileName string) (* utils.Chunk, *utils.FileMeta, int64, error) {
 	utils.Debugf("To create chunk: %s\n", partFileName)
-	utils.SendToLocal(utils.MSG_PREFIX + "To create chunk file: " + utils.Basename2(partFileName))
+	utils.SendMsg( "To create chunk file: " + utils.Basename2(partFileName))
 	var packIncrement int64 = 0
 	var fileMeta *utils.FileMeta
 	chunk, err := startChunking(repository.Name, chnker, partFileName)

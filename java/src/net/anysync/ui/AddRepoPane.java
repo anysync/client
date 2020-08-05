@@ -16,9 +16,6 @@ import javafx.stage.Window;
 import javafx.stage.WindowEvent;
 import net.anysync.util.NetUtil;
 import net.anysync.util.UiUtil;
-import org.apache.log4j.*;;
-
-
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;

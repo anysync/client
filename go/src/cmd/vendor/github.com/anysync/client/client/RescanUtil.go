@@ -10,12 +10,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/panjf2000/ants"
+	"golang.org/x/sync/syncmap"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	utils "github.com/anysync/client/utils"
 )
@@ -1039,4 +1042,240 @@ type FolderEx struct{
 }
 func (f FolderEx)toString() string{
 	return f.absPath + "; repo: " + f.repo.Name;
+}
+
+
+type FolderData struct{
+	p *ants.PoolWithFunc;
+	wg * sync.WaitGroup;
+	changedDirs, traversedDirs * syncmap.Map;
+	srcAbsPath string;
+	files []string;
+	currentRelativePath, folderHash, hashSuffix string
+	storeFiles bool;
+}
+
+func checkChanges(repoHash string, storeFiles bool) * syncmap.Map{
+	defer utils.TimeTrack(time.Now(), "checkChanges")
+	var wg sync.WaitGroup
+	p, _ := ants.NewPoolWithFunc(50, func(i interface{}) {
+		doCheckFolder(i)
+		wg.Done()
+	})
+	defer p.Release()
+
+
+
+	folders, _,_ := repoToFolderEx()
+
+	traversedDirs := new(syncmap.Map)
+	changedDirs := new(syncmap.Map)
+	for _, folder := range folders {
+		if len(repoHash) > 0{
+			if(folder.repo.Hash != repoHash){
+				continue
+			}
+		}
+		checkFolder(p, &wg, changedDirs, traversedDirs, folder.absPath, folder.files, folder.relativePath,  folder.repo.Hash, folder.repo.HashSuffix, storeFiles)
+	}
+
+	wg.Wait()
+	changedDirs = dedup(changedDirs)
+	return changedDirs
+}
+func checkFolder(p *ants.PoolWithFunc, wg * sync.WaitGroup,  changedDirs, traversedDirs * syncmap.Map, srcAbsPath string,
+	files []string, currentRelativePath, folderHash, hashSuffix string, storeFiles bool) {
+	data := FolderData{
+		p:                   p,
+		wg:                  wg,
+		changedDirs:         changedDirs,
+		traversedDirs:       traversedDirs,
+		srcAbsPath:          srcAbsPath,
+		files:               files,
+		currentRelativePath: currentRelativePath,
+		folderHash:          folderHash,
+		hashSuffix:          hashSuffix,
+		storeFiles: storeFiles,
+	}
+	//WARNING: because it's recursive and thread pool will be used up and got stuck, so when the cap is reached, no new thread will be created.
+	if(p.Running() < p.Cap()) {
+		wg.Add(1)
+		p.Invoke(data)
+	}else{
+		doCheckFolder(data)
+	}
+
+}
+
+func doCheckFolder(i interface{}){
+	var changedDirs, traversedDirs * syncmap.Map
+	var files []string;
+	var  srcAbsPath, currentRelativePath, folderHash, hashSuffix string
+	f := i.(FolderData)
+
+	changedDirs = f.changedDirs
+	traversedDirs = f.traversedDirs
+	files = f.files
+	srcAbsPath = f.srcAbsPath
+	currentRelativePath = f.currentRelativePath
+	folderHash = f.folderHash
+	hashSuffix = f.hashSuffix
+	storeFiles := f.storeFiles
+	srcAbsPath = filepath.Clean(srcAbsPath)
+	if traversedDirs != nil {
+		traversedDirs.Store(srcAbsPath, true)
+	}
+	info, _ := os.Lstat(srcAbsPath)
+	isDir := info.IsDir();
+	if (len(folderHash) == 0) {
+		folderHash = utils.GetFolderPathHash(currentRelativePath)
+	}
+
+	var fileNames []*utils.RealFileInfo
+	if(isDir && len(files) == 0) {
+		dir, _ := os.Open(srcAbsPath)
+		defer dir.Close()
+		fis, _ := dir.Readdir(-1)
+		if (len(folderHash) == 0) {
+			folderHash = utils.GetFolderPathHash(currentRelativePath)
+		}
+		for _, fileInfo := range fis {
+			fileName := fileInfo.Name()
+			//path := filepath.Join(srcAbsPath, fileName)
+			if fileName == "." || fileName == ".." || !FilterFile(currentRelativePath+"/"+fileInfo.Name(), fileInfo) {
+				continue
+			}
+
+			rfi := utils.NewRealFileInfo(fileInfo, filepath.Join(srcAbsPath, fileInfo.Name()))
+			if(rfi != nil) {
+				fileNames = append(fileNames, rfi)
+			}
+		}
+	}else {
+
+		if (!isDir) {
+			if rfi, err := utils.GetRealFileInfo(srcAbsPath); err == nil {
+				fileNames = append(fileNames, rfi)
+			}
+
+		} else if (len(files) > 0) {
+			for _, file := range files {
+				if rfi, err := utils.GetRealFileInfo(srcAbsPath + "/" + file); err == nil {
+					rfi.IsDir = false;
+					rfi.IsFile = true;
+					rfi.Name = file;
+					fileNames = append(fileNames, rfi)
+				}
+			}
+		}
+	}
+	checkFolderChanges(f.p, f.wg, changedDirs, traversedDirs, srcAbsPath, currentRelativePath, folderHash, hashSuffix, storeFiles, fileNames)
+}
+
+//func (this *Rescan) rescanDirectory(directoryAbsPath string, currentRelativePath string, fileNames []*utils.RealFileInfo, mfolder *utils.ModifiedFolderExt,  updateMeta bool, hashSuffix string) bool {
+
+func  checkFolderChanges(p *ants.PoolWithFunc, wg * sync.WaitGroup, changedDirs, traversedDirs * syncmap.Map,
+	srcAbsPath, currentRelativePath, folderHash, hashSuffix string, storeFiles bool, fileNames []*utils.RealFileInfo)bool {
+	subPath := utils.HashToPath(folderHash)
+	path := utils.GetTopTreeFolder() + subPath
+	pathBin := path + ".bin"
+	binRowMap := make(map[string]*utils.IndexBinRow) //Map file Name key to IndexBinRow object
+	_=ReadBinFileProcessRow(pathBin, func(io *utils.IndexBinRow, args ...interface{}) error {
+		if io.Index == 0 {
+			if utils.IsFileModeDeleted(io.FileMode) {
+				return errors.New("deleted")
+			} else {
+				return nil
+			}
+		}
+		var binItems map[string]*utils.IndexBinRow
+		binItems = args[0].(map[string]*utils.IndexBinRow)
+		if !utils.IsFileModeDeleted(io.FileMode) {
+			binItems[io.FileNameKey] = io
+		}
+		return nil
+	}, binRowMap)
+	skipFile := false
+	for _, fileInfo := range fileNames {
+		if fileInfo == nil {
+			utils.Warn("nil fileinfo. dir:", srcAbsPath)
+			continue
+		}
+		fKey := utils.CalculateFileNameKey(fileInfo.Name, fileInfo.IsDir, folderHash, hashSuffix)
+		row, found := binRowMap[fKey]
+		if fileInfo.IsDir {
+			absPath := filepath.Clean(fileInfo.AbsPath)
+			if _, f := traversedDirs.Load(absPath); f {
+				continue
+			}
+			if(!found){
+				//new folder
+				if(storeFiles){
+					changedDirs.Store(filepath.Join(srcAbsPath , fileInfo.Name), false)
+				}else {
+					changedDirs.Store(srcAbsPath, true)
+				}
+			}else {
+				checkFolder(p, wg, changedDirs, traversedDirs, absPath, nil,
+					currentRelativePath+"/"+fileInfo.Name, "", hashSuffix, storeFiles)
+			}
+		}else {
+			if (skipFile) {
+				continue
+			}
+			if  found {
+				if row.LastModified != fileInfo.LastModified || row.FileSize != fileInfo.Size {
+					if _, f := changedDirs.Load(srcAbsPath); !f {
+						if(storeFiles){
+							changedDirs.Store(filepath.Join(srcAbsPath , fileInfo.Name), false)
+						}else {
+							changedDirs.Store(srcAbsPath, false)
+						}
+						skipFile = true
+					}
+					continue
+				}
+			} else {
+				if _, f := changedDirs.Load(srcAbsPath); !f {
+					if(storeFiles){
+						changedDirs.Store(filepath.Join(srcAbsPath , fileInfo.Name), false)
+					}else {
+						changedDirs.Store(srcAbsPath, false)
+					}
+
+					skipFile = true
+				}
+				continue
+			}
+		}
+	}
+	return false
+}
+
+func dedup(folders  * syncmap.Map)  * syncmap.Map{
+	var deletes []string
+	folders.Range(func(k, v interface{}) bool {
+		folder := k.(string)
+		orig := folder
+		for{
+			parent := filepath.Dir(folder)
+			if(parent == folder){
+				break;
+			}
+			if v, f := folders.Load(parent) ; f{
+				if(v.(bool)) {//the parent directory is recursive scan
+					deletes = append(deletes, orig)
+					break;
+				}
+			}
+			folder = parent;
+		}
+
+		return true
+	})
+
+	for _, d := range deletes{
+		folders.Delete(d)
+	}
+	return folders
 }

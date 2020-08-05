@@ -19,9 +19,7 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
-;
-
-public class FileBrowserMain //extends Application
+public class FileBrowserMain
 {
 	final static Logger log = LogManager.getLogger(FileBrowserMain.class);
 	public static void open(Stage stage, String name, String folderHash, String localFolder)
@@ -29,8 +27,6 @@ public class FileBrowserMain //extends Application
 		stage.setTitle(Main.getString("app_name"));
 		stage.getIcons().add(Main.getImage("/images/app128.png"));
 		stage.setScene(createScene(loadMainPane(name, folderHash, localFolder)));
-//		stage.setResizable(true);
-//		stage.initStyle(StageStyle.UNDECORATED);
 		stage.show();
 	}
 
@@ -49,7 +45,7 @@ public class FileBrowserMain //extends Application
 		}
 		catch(IOException ioe)
 		{
-			log.error("IOException occurred while loading the main pane :: loadMainPane ::", ioe);
+			log.error("IOException occurred. loadMainPane ::", ioe);
 		}
 		return pane;
 	}
@@ -62,7 +58,7 @@ public class FileBrowserMain //extends Application
 	private static  Scene createScene(Pane mainPane)
 	{
 		Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
-		Scene scene = new Scene(mainPane, 1100, 600);//screenBounds.getWidth() * 0.6, screenBounds.getHeight() * 0.6);
+		Scene scene = new Scene(mainPane, 1100, 600);
 		return scene;
 	}
 }

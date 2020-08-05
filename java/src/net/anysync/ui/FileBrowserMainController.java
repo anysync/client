@@ -6,7 +6,6 @@
 package net.anysync.ui;
 
 import javafx.collections.FXCollections;
-import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
@@ -33,8 +32,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.*;
 
-;
-
 public class FileBrowserMainController
 {
 	final static Logger log = LogManager.getLogger(FileBrowserMainController.class);
@@ -45,8 +42,6 @@ public class FileBrowserMainController
 	private TextField pathText;
 	@FXML
 	private BorderPane mainPane;
-	@FXML
-	private ResourceBundle resources;
 
 	@FXML
 	private void initialize()
@@ -102,75 +97,66 @@ public class FileBrowserMainController
 
 	private TableView createTableView()
 	{
-		TableView<FileData> tableView = new TableView<FileData>();
+		TableView<FileData> tableView = new TableView<>();
 		tableView.setFixedCellSize(FileData.ICON_SIZE + 2);//setRowHeight
 		for(PropertyValueFactory<FileData, String> pvf : getColumnsList())
 		{
-			TableColumn<FileData, String> col = null;
+			TableColumn<FileData, String> col;
 			String p = pvf.getProperty();
-			if(p.equals(ICON))
+			switch(p)
 			{
-				col = new TableColumn<FileData, String>();
-				col.setMaxWidth(-1.0);
-				col.setMinWidth(FileData.ICON_SIZE);
-				col.setPrefWidth(FileData.ICON_SIZE);
-			}
-			else if(p.equals(NAME))
-			{
-				col = new TableColumn<FileData, String>(pvf.getProperty());
-				col.setText(Main.getString(NAME));
-				col.setMinWidth(100.0);
-				col.setPrefWidth(600.0);
-			}
-			else if(p.equals(DESC))
-			{
-				col = new TableColumn<FileData, String>(pvf.getProperty());
-				col.setText(Main.getString(DESC));
-				col.setMaxWidth(-1.0);
-				col.setMinWidth(100.0);
-				col.setPrefWidth(100.0);
-			}
-			else if(p.equals(SIZE))
-			{
-				col = new TableColumn<FileData, String>(pvf.getProperty());
-				col.setText(Main.getString(SIZE));
-				col.setMinWidth(100.0);
-				col.setPrefWidth(100.0);
-				col.setComparator(new Comparator<String>()
-				{
-					@Override
-					public int compare(String o1, String o2)
-					{
-						long l1 = FileData.getRawSize(o1) ;
+				case ICON:
+					col = new TableColumn<>();
+					col.setMaxWidth(-1.0);
+					col.setMinWidth(FileData.ICON_SIZE);
+					col.setPrefWidth(FileData.ICON_SIZE);
+					break;
+				case NAME:
+					col = new TableColumn<>(pvf.getProperty());
+					col.setText(Main.getString(NAME));
+					col.setMinWidth(100.0);
+					col.setPrefWidth(600.0);
+					break;
+				case DESC:
+					col = new TableColumn<>(pvf.getProperty());
+					col.setText(Main.getString(DESC));
+					col.setMaxWidth(-1.0);
+					col.setMinWidth(100.0);
+					col.setPrefWidth(100.0);
+					break;
+				case SIZE:
+					col = new TableColumn<>(pvf.getProperty());
+					col.setText(Main.getString(SIZE));
+					col.setMinWidth(100.0);
+					col.setPrefWidth(100.0);
+					col.setComparator((o1, o2) -> {
+						long l1 = FileData.getRawSize(o1);
 						long l2 = FileData.getRawSize(o2);
-					    if(l1 > l2) return 1;
-					    else
+						if(l1 > l2) return 1;
+						else
 						{
 							if(l1 == l2) return 0;
 							else return -1;
 						}
-					}
-				});
-			}
-			else if(p.equals(CREATED))
-			{
-				col = new TableColumn<FileData, String>(pvf.getProperty());
-				col.setText(Main.getString(CREATED));
-				col.setMinWidth(150.0);
-				col.setPrefWidth(150.0);
-			}
-			else if(p.equals(MODIFIED))
-			{
-				col = new TableColumn<FileData, String>(pvf.getProperty());
-				col.setText(Main.getString(MODIFIED));
-				col.setMinWidth(150.0);
-				col.setPrefWidth(150.0);
-			}
-			else
-			{
-				col = new TableColumn<FileData, String>(pvf.getProperty());
-				col.setMinWidth(0);
-				col.setPrefWidth(0);
+					});
+					break;
+				case CREATED:
+					col = new TableColumn<>(pvf.getProperty());
+					col.setText(Main.getString(CREATED));
+					col.setMinWidth(150.0);
+					col.setPrefWidth(150.0);
+					break;
+				case MODIFIED:
+					col = new TableColumn<>(pvf.getProperty());
+					col.setText(Main.getString(MODIFIED));
+					col.setMinWidth(150.0);
+					col.setPrefWidth(150.0);
+					break;
+				default:
+					col = new TableColumn<>(pvf.getProperty());
+					col.setMinWidth(0);
+					col.setPrefWidth(0);
+					break;
 			}
 			col.setCellValueFactory(pvf);
 			tableView.getColumns().add(col);
@@ -184,32 +170,6 @@ public class FileBrowserMainController
 		tableView.setOnMouseClicked(new tableViewMouseEventHandler());
 		tableView.setOnKeyReleased(new tableViewKeyEventHandler());
 		setTableView(tableView);
-
-//		tableView.sortPolicyProperty().set(new Callback<TableView<FileData>, Boolean>()
-//		{
-//			@Override
-//			public Boolean call(TableView<FileData> param)
-//			{
-//				Comparator<FileData> comparator = new Comparator<FileData>()
-//				{
-//					@Override
-//					public int compare(FileData r1, FileData r2)
-//					{
-//						return (int)(r1.getRawSize() - r2.getRawSize());
-//						if(param.getComparator() == null)
-//						{
-//							return 0;
-//						}
-//						else
-//						{
-//							return param.getComparator().compare(r1, r2);
-//						}
-//					}
-//				};
-//				FXCollections.sort(tableView.getItems(), comparator);
-//				return true;
-//			}
-//		});
 		return tableView;
 	}
 
@@ -362,12 +322,10 @@ public class FileBrowserMainController
 	}
 
 	@FXML
-	private void homeImageButtonClicked(MouseEvent event)
+	private void homeImageButtonClicked()
 	{
 		int n = hashes.size();
 		if(n == 1) return;
-//		forwardHash.add(hashes.get(n - 1));
-//		forwardName.add(names.get(n - 1));
 		for(int i = names.size() - 1; i > 0; i--)
 		{
 			forwardNames.add(names.remove(i));
@@ -377,13 +335,13 @@ public class FileBrowserMainController
 	}
 
 	@FXML
-	private void backButtonClicked(MouseEvent event)
+	private void backButtonClicked()
 	{
 		moveToPreviousDirectory();
 	}
 
 	@FXML
-	private void forwardButtonClicked(MouseEvent event)
+	private void forwardButtonClicked()
 	{
 		if(forwardHashes.size() > 0)
 		{
@@ -397,27 +355,16 @@ public class FileBrowserMainController
 
 
 	@FXML
-	public void reloadButtonClicked(MouseEvent event)
+	public void reloadButtonClicked()
 	{
 		changeFolder(getFolderHash());
 	}
-
-	@FXML
-	private void pathTextFieldOnEnter(ActionEvent ae)
-	{
-//		String [] tokens = Tokenizer.parse(getPathText(), '/', true, true);
-//		int size = paths.size();
-//    		setDefaultValues(AppUtil.ROOT);
-
-	}
-
 
 	private void moveToPreviousDirectory()
 	{
 		int size = names.size();
 		if(size > 1)
 		{
-//			String name = names.get(size - 2);
 			String hash = hashes.get(size - 2);
 			forwardNames.add(names.remove(size - 1));
 			forwardHashes.add(hashes.remove(size - 1));
@@ -471,9 +418,7 @@ public class FileBrowserMainController
 		{
 			path = "";
 		}
-		String fileName = localFolder +  path + "/" + fname;
-//		System.out.println("FileName:" + fileName);
-		return fileName;
+		return localFolder +  path + "/" + fname;
 	}
 	private void changeFolder(String folderHash)
 	{
@@ -489,8 +434,6 @@ public class FileBrowserMainController
 
 	private void setRightClickedFileName(String rightClickedFileName)
 	{
-		//System.out.println("==rightClickedFileName==>"+rightClickedFileName);
-//		this.rightClickedFileName = rightClickedFileName;
 	}
 
 	private void setPathText()
@@ -556,12 +499,12 @@ public class FileBrowserMainController
 	public static List<PropertyValueFactory<FileData, String>> getColumnsList()
 	{
 		List<PropertyValueFactory<FileData, String>> colList = new ArrayList<PropertyValueFactory<FileData, String>>();
-		colList.add(0, new PropertyValueFactory<FileData, String>(ICON));
-		colList.add(1, new PropertyValueFactory<FileData, String>(NAME));
-		colList.add(2, new PropertyValueFactory<FileData, String>(DESC));
-		colList.add(3, new PropertyValueFactory<FileData, String>(SIZE));
-		colList.add(4, new PropertyValueFactory<FileData, String>(CREATED));
-		colList.add(5, new PropertyValueFactory<FileData, String>(MODIFIED));
+		colList.add(0, new PropertyValueFactory<>(ICON));
+		colList.add(1, new PropertyValueFactory<>(NAME));
+		colList.add(2, new PropertyValueFactory<>(DESC));
+		colList.add(3, new PropertyValueFactory<>(SIZE));
+		colList.add(4, new PropertyValueFactory<>(CREATED));
+		colList.add(5, new PropertyValueFactory<>(MODIFIED));
 		return colList;
 	}
 }
