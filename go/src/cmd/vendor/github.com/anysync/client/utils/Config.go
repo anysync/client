@@ -444,7 +444,7 @@ func getDefaultConfig() *Config{
 		TlsEnabled:    p.TlsEnabled,
 		ScanInterval:    10,
 		RateLimit:     0,
-		ThreadCount:   4,
+		ThreadCount:   8,
 		Excluded:      DEFAULT_EXCLUDED,
 		LogLevel:      l,
 

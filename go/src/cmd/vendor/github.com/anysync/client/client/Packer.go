@@ -7,16 +7,14 @@ package client
 
 import (
 	"fmt"
-	"github.com/panjf2000/ants"
 	"golang.org/x/sync/syncmap"
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	utils "github.com/anysync/client/utils"
 )
 
-func addFileToPacksFolder(repository *utils.Repository, folderHash, fileHash, fileNameKey string, fileSize int64, filePath string, objects *syncmap.Map, failedUploads *syncmap.Map,  deletes *syncmap.Map) {
+func addFileToPacksFolder(repository *utils.Repository, folderHash, fileHash, fileNameKey string, fileSize int64, filePath string, objects *syncmap.Map,  deletes *syncmap.Map) {
 	count := 0
 	packFolder := utils.GetPacksFolder() + repository.Name + "/"
 	if !utils.FileExists(packFolder) {
@@ -36,13 +34,13 @@ func addFileToPacksFolder(repository *utils.Repository, folderHash, fileHash, fi
 	utils.WriteString(countFile, fmt.Sprintf("%d", count))
 	utils.Debug("PackMinSize: ", utils.LoadConfig().PackMinSize)
 	if count >= utils.LoadConfig().PackMinSize /* PACK_FILE_SIZE_MAX_THRESHOLD*/ {
-		generatePackFile(repository, objects, failedUploads,  deletes)
+		generatePackFile(repository, objects,   deletes)
 		utils.RemoveAllFiles(packFolder)
 		//utils.Mkdir(utils.GetPacksFolder());
 	}
 }
 
-func generatePackFile(repository *utils.Repository, objects *syncmap.Map, failedUploads *syncmap.Map, deletes * syncmap.Map) {
+func generatePackFile(repository *utils.Repository, objects *syncmap.Map,  deletes * syncmap.Map) {
 	packFolder := utils.GetPacksFolder() + repository.Name + "/"
 
 	dir, err := os.Open(packFolder)
@@ -74,7 +72,7 @@ func generatePackFile(repository *utils.Repository, objects *syncmap.Map, failed
 		}
 	}
 	utils.Debug("To generate final pack, packSize:", packSize, "; fileparts.count: ", len(fileParts))
-	generateFinalPackFile(repository,  fileParts, objects,  failedUploads, deletes)
+	generateFinalPackFile(repository,  fileParts, objects,   deletes)
 }
 
 /**
@@ -135,64 +133,14 @@ func appendToPackFile(packObjPath string, smallFilePath string,  fileHash string
 	return utils.NewFileMeta(utils.FILE_META_TYPE_REGULAR, "", from, smallFileSize, fileHash), smallFileSize + headerLen
 }
 
-type GeneratePackJob struct{
-	repository * utils.Repository
-	fileParts []*utils.FileMeta
-	objects *syncmap.Map
-	failedUploads *syncmap.Map
-	deletes * syncmap.Map
-}
-
-var packJobPool * ants.PoolWithFunc
-var packWait sync.WaitGroup
-
-func createPackFilePool() {
-	if packJobPool == nil {
-		packJobPool, _ = ants.NewPoolWithFunc(20, func(i interface{}) {
-			doGenerateFinalPackFile(i)
-			packWait.Done()
-		})
-	}
-}
-
 func generateFinalPackFile(repository * utils.Repository,  fileParts []*utils.FileMeta, objects *syncmap.Map,
-	failedUploads *syncmap.Map, deletes * syncmap.Map) {
-
-	job := GeneratePackJob{
-		repository:    repository,
-		fileParts:     fileParts,
-		objects:       objects,
-		failedUploads: failedUploads,
-		deletes:       deletes,
-	}
-	if(packJobPool == nil) {
-		createPackFilePool()
-	}
-	utils.Debug("Add one job to pack job pool")
-	packWait.Add(1)
-	packJobPool.Invoke(job)
-}
-
-func doGenerateFinalPackFile(i interface{}){
-	j := i.(GeneratePackJob)
-	utils.Debug("Do job in pack job pool")
-    repository := j.repository
-    fileParts := j.fileParts
-    objects := j.objects
-    failedUploads := j.failedUploads
-    deletes := j.deletes
-
+	 deletes * syncmap.Map) {
 	lastModified := uint32(0)
-	var fileHash, path string;
-	fileParts, filePart, err := CompressAndUploadPack( fileParts, deletes, repository);
+	var fileHash string;
+	fileParts, filePart, err := CompressAndUploadPack( fileParts, deletes, repository, objects);
 	fileHash = filePart.GetFileHash()
-	path = utils.GetTopObjectsFolder() + utils.HashToPath(fileHash) + utils.EXT_OBJ
 	if  err != nil {
 		utils.Error("Error occurred in CloudCopy: ", err)
-		failedUploads.Store(path, filePart)
-		if filePart.GetIncomplete() == 2 { //nothing uploaded
-			return
-		}
 	}else {
 		for _, part := range fileParts {
 			if lastModified == 0 {

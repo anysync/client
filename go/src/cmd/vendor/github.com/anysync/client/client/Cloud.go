@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/panjf2000/ants"
 	_ "github.com/rclone/rclone/backend/all" // import all fs
 	"github.com/rclone/rclone/cmd"
 	"github.com/rclone/rclone/fs"
@@ -29,26 +30,7 @@ import (
 	utils "github.com/anysync/client/utils"
 )
 
-func init() {
-	//RcloneInit()
-}
-
-//func isLocalPath(path string) bool {
-//	if strings.HasPrefix(path, "/")  {
-//		return true
-//	}
-//	if(len(path) >= 2){
-//		if(  path[1] == ':' && (path[0] != utils.REMOTE_TYPE_SERVER_NAME[0] || path[0] != utils.LoadAppParams().GetSelectedRemoteName()[0]) ){
-//			return true;
-//		}
-//		if(path[0] == '\\' && path[1] == '\\'  ) {
-//			return true;
-//		}
-//	}
-//	return false
-//}
-
-func CompressAndUploadPack(files []*utils.FileMeta, deletes  *syncmap.Map, repository * utils.Repository) ([]*utils.FileMeta, * utils.FileMeta, error) {
+func CompressAndUploadPack(files []*utils.FileMeta, deletes  *syncmap.Map, repository * utils.Repository, objects *syncmap.Map ) ([]*utils.FileMeta, * utils.FileMeta, error) {
 	var err error
 	packFolder := utils.GetTopTmpFolder() + "/pack/" + repository.Name + "/"
 	file := utils.GenerateRandomHash()
@@ -88,23 +70,67 @@ func CompressAndUploadPack(files []*utils.FileMeta, deletes  *syncmap.Map, repos
 	filePart.B = encodeHashes(hashes)
 	skipCompress := false;
 	if(isEncrypted){skipCompress = true}
-	err = CompressAndUpload(packFile, filePart, deletes, true, skipCompress, "");
+	err = CompressAndUpload(packFile, filePart, deletes, true, skipCompress, "", objects);
 	return fileParts, filePart, err
 }
 
-func CompressAndUpload(srcFile string, fileMeta *utils.FileMeta, deletes  *syncmap.Map, skipEncrypt bool, skipCompress bool, ownerUserID string ) error {
-	hashPath := utils.HashToPath(fileMeta.GetFileHash())
-	var err error
+type CompressJob struct{
+	srcFile string
+	fileMeta *utils.FileMeta
+	deletes  *syncmap.Map
+	skipEncrypt bool
+	skipCompress bool
+	ownerUserID string
+	objects *syncmap.Map
+}
+
+var compressPool * ants.PoolWithFunc
+var compressWait sync.WaitGroup
+
+func createCompressPool() {
+	compressPool, _ = ants.NewPoolWithFunc(50, func(i interface{}) {
+		doCompressAndUpload(i)
+		compressWait.Done()
+	})
+}
+
+func CompressAndUpload(srcFile string, fileMeta *utils.FileMeta, deletes  *syncmap.Map, skipEncrypt bool, skipCompress bool, ownerUserID string ,
+	objects *syncmap.Map) error {
+	job := CompressJob{
+		srcFile:srcFile,
+		fileMeta:fileMeta,
+		deletes:deletes,
+		skipEncrypt:skipEncrypt,
+		skipCompress: skipCompress,
+		ownerUserID:ownerUserID,
+		objects:objects,
+	}
+	if(compressPool == nil) {
+		createCompressPool()
+	}
+
+	if(compressPool.Running() < compressPool.Cap()) {
+		compressWait.Add(1)
+		_ = compressPool.Invoke(job)
+	}else{
+		doCompressAndUpload(job)
+	}
+
+	return nil
+}
+
+func doCompressAndUpload(i interface{})  {
+	j := i.(CompressJob)
+	hashPath := utils.HashToPath(j.fileMeta.GetFileHash())
 	finished := 0
-	base := srcFile[0 : len(srcFile)-4]
-	utils.Debug("Enter CompressAndUpload, remotes.size: ", len(fileMeta.GetRepository().Remote))
-	encrypt := fileMeta.GetRepository().EncryptionLevel == 1
-	if(skipEncrypt){ encrypt = false}
-	for _, remote := range fileMeta.GetRepository().Remote {
-		//currentRemote + ":" + utils.TOP_REMOTE_DIR + "objects/" + hashPath + ".obj"
+	base := j.srcFile[0 : len(j.srcFile)-4]
+	utils.Debug("Enter CompressAndUpload, remotes.size: ", len(j.fileMeta.GetRepository().Remote))
+	encrypt := j.fileMeta.GetRepository().EncryptionLevel == 1
+	if(j.skipEncrypt){ encrypt = false}
+	for _, remote := range j.fileMeta.GetRepository().Remote {
 		r := remote.Root;
-		if(ownerUserID != ""){
-			m := utils.GetUserInfo(ownerUserID);
+		if(j.ownerUserID != ""){
+			m := utils.GetUserInfo(j.ownerUserID);
 			if m != nil {
 				prefix :=  string(m["prefix"])
 				ts := strings.Split(remote.Root, "/")
@@ -116,19 +142,18 @@ func CompressAndUpload(srcFile string, fileMeta *utils.FileMeta, deletes  *syncm
 		}
 		path :=  r + "objects/" + hashPath + utils.EXT_OBJ
 		utils.Debug("CompressAndUpload.path: ", path, "; remote.RemoteName: ", remote.Name, "; remote.T: ", remote.Type, "; remote.Root: ", remote.Root, ", encrytLevel:", encrypt)
-		if compressed, e, _ := CloudCopyLz4File(srcFile,  &path, remote, fileMeta, base, encrypt, skipCompress); e == nil { //todo improve it. don't compress and encrypt multiple times.
-			//p := fmt.Sprintf("%d%d%d%s:%s", fileMeta.repository.EncryptionLevel, compressed, utils.META_PATH_STATE_NORMAL, remote.RemoteName, path)
-			p := CreatePath(fileMeta.GetRepository().EncryptionLevel, compressed, utils.META_PATH_STATE_NORMAL, remote.Name, path)
-			if fileMeta.P != "" {
-				fileMeta.P += utils.META_PATH_SEPERATOR + p
+		if compressed, e, _ := CloudCopyLz4File(j.srcFile,  &path, remote, j.fileMeta, base, encrypt, j.skipCompress); e == nil {
+			p := CreatePath(j.fileMeta.GetRepository().EncryptionLevel, compressed, utils.META_PATH_STATE_NORMAL, remote.Name, path)
+			if j.fileMeta.P != "" {
+				j.fileMeta.P += utils.META_PATH_SEPERATOR + p
 			} else {
-				fileMeta.P = p
+				j.fileMeta.P = p
 			}
-			utils.Debug("fileMeta.P: ", fileMeta.P)
+			utils.Debug("fileMeta.P: ", j.fileMeta.P)
 			finished++
 		}else{//error occurred
-			fileMeta.SetIncomplete( 2)
-			return e;
+			j.fileMeta.SetIncomplete( 2)
+			return ;
 		}
 		//don't do the following: because it silently skip uploading and makes the file unable to be uploaded again.
 		//else{
@@ -142,19 +167,27 @@ func CompressAndUpload(srcFile string, fileMeta *utils.FileMeta, deletes  *syncm
 		//}
 	}
 	if finished == 0 {
-		fileMeta.SetIncomplete( 2)
-	} else if finished != len(fileMeta.GetRepository().Remote) {
-		fileMeta.SetIncomplete( 1)
-	} else if deletes != nil{ //no error
+		j.fileMeta.SetIncomplete( 2)
+	} else if finished != len(j.fileMeta.GetRepository().Remote) {
+		j.fileMeta.SetIncomplete( 1)
+	} else if j.deletes != nil{ //no error
 		if(utils.FileExists(base + utils.EXT_LZ4)) {
-			deletes.Store(base+utils.EXT_LZ4, true)
+			j.deletes.Store(base+utils.EXT_LZ4, true)
 		}
 		if(utils.FileExists(base + utils.EXT_CZC)) {
-			deletes.Store(base+utils.EXT_CZC, true)
+			j.deletes.Store(base+utils.EXT_CZC, true)
 		}
 	}
 
-	return err
+	if j.fileMeta.GetIncomplete() == 0 {
+		h := j.fileMeta.GetFileHash();
+		if(len(j.ownerUserID) > 0){
+			h = j.fileMeta.GetFolderHash() + utils.DAT_SEPERATOR + h;
+		}
+		if j.objects != nil {
+			j.objects.Store(h, j.fileMeta)
+		}
+	}
 }
 
 func CloudCopyLz4File(srcFile string, destFile * string,  remote *utils.RemoteObject, fileMeta *utils.FileMeta, base string, toEncrypt bool, skipCompress bool  ) (int, error, bool) {

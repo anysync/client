@@ -11,29 +11,19 @@ import (
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"path/filepath"
-	//"github.com/boltdb/bolt"
 )
 
-const(
-	DEFAULT_OPEN_FILE_COUNT_CLIENT = 12
-	DEFAULT_OPEN_FILE_COUNT_SERVER = 16
-)
-
-func init(){
-}
-
-//var clientInited  = false;
 var namesdb *sql.DB;
 
 func NewDb(dbFile string) *sql.DB{
-	dir := filepath.Dir(dbFile)
-	if(!FileExists(dir)) {
-		MkdirAll(dir)
-	}
-
 	exists := FileExists(dbFile)
 	Info("To open db file:", dbFile, "; exists? ", exists)
-
+	if(!exists){
+		dir := filepath.Dir(dbFile)
+		if !FileExists(dir) {
+			_ = MkdirAll(dir)
+		}
+	}
 	db, err := sql.Open("sqlite3", dbFile)//, 0600, nil)
 	if err != nil {
 		Error(err, "cannot open " + dbFile)
@@ -44,7 +34,7 @@ func NewDb(dbFile string) *sql.DB{
 		//db.Exec("PRAGMA journal_mode=WAL;")
 		_, err = db.Exec("CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value BLOB)")
 		if err != nil {
-			Error("Cannot create table kv")
+			Error("Cannot create table kv for file:", dbFile, "; Error is", err)
 		}
 	}
 
@@ -56,7 +46,7 @@ func NewDb(dbFile string) *sql.DB{
 
 func CloseDb(db * sql.DB){
 	if db != nil {
-		db.Close()
+		_ = db.Close()
 	}
 }
 func clientInit(){
@@ -222,10 +212,10 @@ func DbGetStringValue(key string, toDecrypt bool) (string, bool) {
 }
 
 func DbGetStringValues(keys []string, toDecrypt bool )  map[string][]byte {
-	return GetStringValues(namesdb, keys, toDecrypt)
+	return GetStringValues( keys, toDecrypt)
 }
 
-func GetStringValues( db * sql.DB, keys []string, toDecrypt bool )  map[string][]byte{
+func GetStringValues(  keys []string, toDecrypt bool )  map[string][]byte{
 	if(namesdb == nil) {clientInit();}
 	buf := ""
 	n := len(keys)
@@ -244,7 +234,7 @@ func GetStringValues( db * sql.DB, keys []string, toDecrypt bool )  map[string][
 	}
 	sql := "SELECT key, value FROM kv WHERE key in (" + buf  + ")"
 	var key, val string;
-	row, _ := db.Query(sql)
+	row, _ := namesdb.Query(sql)
 	ret := make (map[string][]byte)
 	if row == nil {
 		return ret;

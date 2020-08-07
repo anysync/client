@@ -20,7 +20,6 @@ import (
 	fsync "github.com/rclone/rclone/fs/sync"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/syncmap"
-	"gopkg.in/go-playground/pool.v3"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -307,7 +306,6 @@ func StartRescanTimer(){
 		}
 		t2 := time.Now().Unix();
 		if SyncState != SYNC_STATE_SYNCING && (t2 - lastScanTime) > int64(60 * config.ScanInterval)  {
-			utils.Info("Rescan after", config.ScanInterval, " minutes of no-scan" )
 			changes := checkChanges("",false)
 			var recursiveFolders, folders []string
 			changes.Range(func(k, v interface{}) bool {
@@ -321,9 +319,11 @@ func StartRescanTimer(){
 				return true
 			})
 			if len(recursiveFolders) > 0 {
+				utils.Info("Recursive Rescan after", config.ScanInterval, " minutes of no-scan for folders:", recursiveFolders )
 				go RescanFolders(recursiveFolders, nil, false, 0, false)
 			}
 			if len(folders) > 0 {
+				utils.Info("Rescan after", config.ScanInterval, " minutes of no-scan for forders:", folders )
 				go RescanFolders(folders, nil, false, 0, true)
 			}
 
@@ -349,7 +349,7 @@ func deleteFiles(deletes *syncmap.Map) {
 	deletes.Range(func(k, v interface{}) bool {
 		fname := k.(string)
 		//utils.Debug("---Delete file: ", fname)
-		utils.RemoveFile(fname)
+		_=utils.RemoveFile(fname)
 		return true
 	})
 }
@@ -360,14 +360,11 @@ func (a ByFileSize) Len() int           { return len(a) }
 func (a ByFileSize) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByFileSize) Less(i, j int) bool { return a[i].Size() < a[j].Size() }
 
-func init() {
-}
-
 func createFolders() {
 	var folders = []string{utils.GetTasksFolder(), utils.GetLogsFolder(), utils.GetTopTmpFolder(), utils.GetPacksFolder(), utils.GetDataFolder()}
 	for _, folder := range folders {
 		if !utils.FileExists(folder) {
-			utils.MkdirAll(folder)
+			_=utils.MkdirAll(folder)
 		}
 	}
 }
@@ -658,9 +655,7 @@ func (this *Rescan) handleFile(fileInfo *utils.RealFileInfo, mfolder *utils.Modi
 	}
 	return ret
 }
-func (rescan *Rescan) addFolderParent(folder *utils.ModifiedFolderExt) {
-	//folder.ParentFullPathHash;
-}
+
 func (this *Rescan) fixRenaming() {
 	var toRemove []int
 	config := utils.LoadConfig()
@@ -1037,10 +1032,7 @@ func (rescan Rescan) doUploads(changes []*utils.ModifiedFolderExt, deletes *sync
 	if(threadCount < 4){
 		threadCount = 4;
 	}
-	p := pool.NewLimited(threadCount)
-	defer p.Close()
 
-	failedUploads := new(syncmap.Map) // cmap.New() // := make(map[string]*utils.FileMeta)
 	objects := new(syncmap.Map) // cmap.New()
 
 	i := 0
@@ -1048,15 +1040,15 @@ func (rescan Rescan) doUploads(changes []*utils.ModifiedFolderExt, deletes *sync
 	n := len(changes)
 
 	//clean up staging area before uploading
-	utils.RemoveAllSubItems(utils.GetStagingFolder());
-	utils.RemoveAllSubItems(utils.GetFolder("tmp") + "pack/");
+	_ = utils.RemoveAllSubItems(utils.GetStagingFolder());
+	_ = utils.RemoveAllSubItems(utils.GetFolder("tmp") + "pack/");
 
 	//For local and server, upload files directly; for clouds, just move files to staging area, then later we will call uploadStagingToCloud()
 	for j := 0; j <= n; j++ {
 		if (j == n) || ( repo != nil && repo.Name != "" && changes[j].Repository.Name != repo.Name) {
 
 			utils.Debugf("toUpload. i:%d, j:%d, n:%d, repo:%v,  ", i, j, n, repo)
-			rescan.uploadToCloud(repo, changes[i:j], objects, failedUploads,  deletes, shareState);
+			_ = rescan.uploadToCloud(repo, changes[i:j], objects,  deletes, shareState);
 			if j == n {
 				break
 			}
@@ -1064,9 +1056,9 @@ func (rescan Rescan) doUploads(changes []*utils.ModifiedFolderExt, deletes *sync
 		}
 		repo = changes[j].Repository
 	}
-	utils.Debug("To wait for all pack jobs done")
-	packWait.Wait() //wait for all jobs done
-	utils.Debug("All pack jobs done.")
+	utils.Debug("To wait for all compress jobs done")
+	compressWait.Wait() //wait for all jobs done
+	utils.Debug("All compress jobs done.")
 	//utils.Debug("All files have been uploaded. To send request to server.")
 	return true, ConvertToMap(objects)
 }
@@ -1094,8 +1086,8 @@ func (rescan Rescan) uploadStaging()(bool, string){
 			}
 
 
-			utils.RemoveAllSubItems(utils.GetStagingFolder());
-			utils.RemoveAllSubItems(utils.GetFolder("tmp") + "pack/");
+			_ = utils.RemoveAllSubItems(utils.GetStagingFolder());
+			_ = utils.RemoveAllSubItems(utils.GetFolder("tmp") + "pack/");
 			if (!b) {
 				return false, errMsg
 			}
@@ -1395,10 +1387,6 @@ func updateDatFilesAndCloseGap(objects map[string][]byte, folderUpdates map[stri
 	db := utils.NewDownloadDb()
 	defer db.Close()
 	kvs := make(map[string][]byte)
-	//tx, _ := db.Begin(true)
-	//batch := tx.Bucket([]byte("Client"))
-
-	//batch := new(leveldb.Batch)
 
 	for key, m := range updateLocals {
 		tokens := strings.Split(key, ",")
@@ -1447,7 +1435,7 @@ func updateDatFilesAndCloseGap(objects map[string][]byte, folderUpdates map[stri
 			}
 		}
 	}
-	utils.DeleteTasks(db, deletes)
+	_ = utils.DeleteTasks(db, deletes)
 	return ret;
 }
 
@@ -1549,9 +1537,9 @@ func BatchExecuteTasks(user string, tasks []*utils.WriteTask) {
 	utils.Debug("To batch set db values, len:", len(m))
 	if(len(m)>0) {
 		if user== "" {
-			utils.DbSetStringValues(m)
+			_ = utils.DbSetStringValues(m)
 		}else{
-			utils.ServerNamesDbSetStringValues(user, m)
+			_ = utils.ServerNamesDbSetStringValues(user, m)
 		}
 	}
 
@@ -1598,7 +1586,7 @@ func BatchExecuteTasks(user string, tasks []*utils.WriteTask) {
 	if user == "" { //on client side, to delete items in task db
 		db := utils.NewDb(utils.GetTasksFolder() + "/data.db")
 		if db != nil {
-			utils.DeleteTasks(db, deletes)
+			_ = utils.DeleteTasks(db, deletes)
 		}
 	}
 }
@@ -1751,10 +1739,10 @@ func ClearScan() {
 	lastScanTime = time.Now().Unix()
 	_fsMap = new(syncmap.Map)
 	gUploadedBytes = 0;
-	utils.RemoveAllSubItems(utils.GetTopTmpFolder() + "/cache")
-	utils.RemoveAllSubItems(utils.GetStagingFolder())
-	utils.MkdirAll(utils.GetStagingFolder())
-	utils.RemoveAllSubItems(utils.GetPacksFolder())
+	_ = utils.RemoveAllSubItems(utils.GetTopTmpFolder() + "/cache")
+	_ = utils.RemoveAllSubItems(utils.GetStagingFolder())
+	_ = utils.MkdirAll(utils.GetStagingFolder())
+	_ = utils.RemoveAllSubItems(utils.GetPacksFolder())
 
 	s := accounting.Stats(context.Background())
 	s.ResetCounters()
@@ -1989,7 +1977,6 @@ func userExistsLocally(email string, password string) ([]byte, []byte,[]byte, []
 		return nil, nil, nil, nil, "", ""
 	}
 	defer dir.Close()
-	//defer utils.Debugf("Leaving startRescan func. sourceDIR:%s\n", srcAbsPath)
 	fis, err := dir.Readdir(-1)
 	if err != nil { //may be because there is no privilege
 		return nil, nil, nil, nil, "", ""
@@ -2120,7 +2107,7 @@ func createBucketIfNecessary()  {
 		return
 	}
 	b := p.RemoteNameCode + ":" + utils.DEFAULT_BUCKET; // p.GetSelectedStorage().Bucket
-	utils.Debug("bucket:" , b)
+	utils.Info("createBucketIfNecessary. bucket:" , b)
 	fdst := cmd.NewFsDir([]string{b})
 	if err := fdst.Mkdir(context.Background(), ""); err == nil {
 		p.GetSelectedStorage().Bucket = utils.DEFAULT_BUCKET;

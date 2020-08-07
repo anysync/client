@@ -18,7 +18,7 @@ import (
 )
 
 
-func (rescan Rescan) uploadToCloud(repo * utils.Repository, clientChanges []*utils.ModifiedFolderExt, objects *syncmap.Map, failedUploads *syncmap.Map, deletes  *syncmap.Map, shareState int32)error {
+func (rescan Rescan) uploadToCloud(repo * utils.Repository, clientChanges []*utils.ModifiedFolderExt, objects *syncmap.Map,  deletes  *syncmap.Map, shareState int32)error {
 	//todo: sort files by RemoteName to assure consistency of pack files
 	packFolder := utils.GetTopTmpFolder() + "/pack/" + repo.Name + "/"
 	if utils.FileExists(packFolder) {
@@ -32,7 +32,7 @@ func (rescan Rescan) uploadToCloud(repo * utils.Repository, clientChanges []*uti
 		binFileName := baseFileName + ".bin"
 		hasImage := false;
 		for index, row := range folder.GetRows() {
-			pSize, filePart := uploadProcessFile(row, folder, objects, binFileName, index, failedUploads, deletes, repo.HashSuffix)
+			pSize, filePart := uploadProcessFile(row, folder, objects, binFileName, index,  deletes, repo.HashSuffix)
 			if pSize > 0 {
 				packSize += pSize
 				objFilePath := utils.GetTopObjectsFolder() + utils.HashToPath(filePart.GetFileHash()) + utils.EXT_OBJ
@@ -48,7 +48,7 @@ func (rescan Rescan) uploadToCloud(repo * utils.Repository, clientChanges []*uti
 			}
 			if packSize >= utils.PACK_FILE_SIZE_MAX_THRESHOLD {
 				utils.Debugf("### Over pack size threshold. packsize: %d, parts.size:%d", packSize, len(fileParts))
-				generateFinalPackFile(repo, fileParts, objects, failedUploads, deletes)
+				generateFinalPackFile(repo, fileParts, objects,  deletes)
 				fileParts = nil
 				packSize = 0
 			}
@@ -66,7 +66,7 @@ func (rescan Rescan) uploadToCloud(repo * utils.Repository, clientChanges []*uti
 		config := utils.LoadConfig();
 		if (n > 2 && packSize > int64(config.PackMinSize) ) || n >= utils.PACK_FILE_MIN_FILE_COUNT {
 			utils.Debug("### Leftover pack size:", packSize, "; number of files: ", n)
-			generateFinalPackFile(repo,  fileParts, objects,  failedUploads,  deletes)
+			generateFinalPackFile(repo,  fileParts, objects,    deletes)
 		} else {
 			utils.Debugf("No need to create pack file, packSize:%d, parts.size:%d\n", packSize, len(fileParts))
 			for _, filePart := range fileParts {
@@ -87,25 +87,14 @@ func (rescan Rescan) uploadToCloud(repo * utils.Repository, clientChanges []*uti
 				if(shareFolderKey != nil) {
 					setFileMetaKey(shareFolderKey, jPart, filePart.GetFileHash(), filePart.GetFolderHash())
 				}
-				if err := CompressAndUpload(filePath, jPart, deletes, false, false, owner); err != nil {
+				if err := CompressAndUpload(filePath, jPart, deletes, false, false, owner, objects); err != nil {
 					utils.Error("Error occurred in CloudCopy: ", err)
-					failedUploads.Store(filePath, jPart)
 					if jPart.GetIncomplete() == 2 { //nothing uploaded
 						continue
 					}
+				}else {
+					addFileToPacksFolder(repo, filePart.GetFolderHash(), filePart.GetFileHash(), filePart.GetFileNameKey(), filePart.S, filePath, objects,  deletes)
 				}
-				utils.Debug("fileMeta_P:", jPart.P)
-				if jPart.GetIncomplete() == 0 {
-					//jsonText := FileMetaToString(jPart)
-					h := jPart.GetFileHash();
-					if(len(owner) > 0){
-						h = filePart.GetFolderHash() + utils.DAT_SEPERATOR + h;
-					}
-					objects.Store(h, jPart)
-				}
-				//AddDatFile(jPart, datFiles)
-
-				addFileToPacksFolder(repo, filePart.GetFolderHash(), filePart.GetFileHash(), filePart.GetFileNameKey(), filePart.S, filePath, objects, failedUploads, deletes)
 			}
 		}
 	}
@@ -114,7 +103,7 @@ func (rescan Rescan) uploadToCloud(repo * utils.Repository, clientChanges []*uti
 }
 
 func uploadProcessFile(row *utils.ModifiedRow, folder *utils.ModifiedFolderExt, objects *syncmap.Map, binFileName string,
-	index uint32,  failedUploads *syncmap.Map, deletes *syncmap.Map, hashSuffix string) (int64, *utils.FileMeta) {
+	index uint32,  deletes *syncmap.Map, hashSuffix string) (int64, *utils.FileMeta) {
 	opMode := row.OperationMode
 	var ret int64
 	var fileHash string
@@ -132,103 +121,92 @@ func uploadProcessFile(row *utils.ModifiedRow, folder *utils.ModifiedFolderExt, 
 	fullHashPath := hPath + utils.EXT_OBJ
 	base := utils.GetTopObjectsFolder() + hPath
 	objFilePath := utils.GetTopObjectsFolder() + fullHashPath
-	complete := true
 	if !utils.FileExists(objFilePath) {
 		return ret, filePart
 	}else{
 		deletes.Store(objFilePath, true);
 	}
 
-	var jsonText string
+	//var jsonText string
 	s := row.GetIndexBinRow().FileSize
-	meta, content := utils.GetDatObjectAndContent(fileHash)
+	meta, _ := utils.GetDatObjectAndContent(fileHash)
 	if meta != nil {// utils.FileExists(datFile) {
 		utils.Debugf("datFile already exists: %s\n", fileHash)
-		jsonText = string(content)
+		meta.SetFileHash( fileHash );
+		objects.Store(fileHash, meta)
 	} else {
 		//Now it's time to create object's meta file (*.dat)
 		small := (s < utils.SMALL_FILE_SIZE_THRESHOLD && s > 0)
 		huge := s >= utils.CHUNKING_FILE_SIZE_THRESHOLD
-		xdiffable := isXDiffApplicable(s)
+		//xdiffable := isXDiffApplicable(s)
 		if small {
 			filePart = utils.NewFileMeta(utils.FILE_META_TYPE_REGULAR, objFilePath, 0, s, fileHash)
 			ret = s;
 			//filePart, ret =  appendToPackFile(packObjPath, objFilePath, s, fileHash)
 			filePart.SetLastModified( indexBinRow.LastModified)
-			complete = false
 		} else if huge { //needs chunking
 			//oldBinRow := GetRowAt(BinFileName, Index);
 			utils.SendToLocal(utils.MSG_PREFIX + "To split file: " + base)
 			utils.Debugf("Huge file, to call split, base:%s\n", base)
-			jsonText,  _ = SplitAndUpload(folder.Repository, base, objects, failedUploads, deletes)
-			utils.Debugf("JsonText:%s\n", jsonText)
+			SplitAndUpload(folder.Repository, base, objects,  deletes, fileHash)
 		} else { //normal
-			var deltaHash, oldHash string
+			//var deltaHash, oldHash string
 			mType := utils.FILE_META_TYPE_REGULAR
-			if xdiffable {
-				oldBinRow := utils.GetRowAt(binFileName, index)
-				if oldBinRow != nil && isXDiffApplicable(oldBinRow.FileSize) {
-					oldHash = oldBinRow.ToHashString()
-					oldHash = getOriginalBase(oldHash)
-					isDeltaSmall, deltaFileName, dsize := diff(objFilePath, s, oldHash)
-					utils.Debugf("isSmallDelta:%v, deltaSize:%d, file:%s\n", isDeltaSmall, dsize, deltaFileName)
-					if isDeltaSmall {
-						deltaHash = utils.GetFileHash( deltaFileName, hashSuffix)
-						filePart = utils.NewFileMeta(utils.FILE_META_TYPE_REGULAR, "", 0, dsize, deltaHash) //createJsonTextForType(deltaHash, dsize, utils.FILE_META_TYPE_REGULAR);
-						deltaFileObjName := utils.GetTopObjectsFolder() + utils.HashToPath(deltaHash) + utils.EXT_OBJ
-						utils.Rename(deltaFileName, deltaFileObjName)
-						utils.Debugf("DeltaHash:%s\n", deltaHash)
-						filePart.SetFileHash( deltaHash )
-						setFileMeta(filePart, "", folder.Repository, indexBinRow.LastModified)
-						//if err := CloudCopyLz4File(deltaFileObjName, filePart.P, encrypt); err != nil {
-						if err := CompressAndUpload(deltaFileObjName, filePart,deletes, false, false, ""); err != nil {
-							utils.Error("Error occurred in CloudCopy: ", err)
-							failedUploads.Store(deltaFileObjName, filePart)
-							//if(filePart.P == ""){//nothing uploaded
-							//	return ;
-							//}
-						} else {
-							//AddDatFile(filePart, datFiles)
-							//SaveDatFileByString(deltaHash, jsonText, utils.GetTopObjectsFolder())
-							mType = utils.FILE_META_TYPE_DIFF
-						}
-					}
-				}
-			}
+			//if xdiffable {
+			//	oldBinRow := utils.GetRowAt(binFileName, index)
+			//	if oldBinRow != nil && isXDiffApplicable(oldBinRow.FileSize) {
+			//		oldHash = oldBinRow.ToHashString()
+			//		oldHash = getOriginalBase(oldHash)
+			//		isDeltaSmall, deltaFileName, dsize := diff(objFilePath, s, oldHash)
+			//		utils.Debugf("isSmallDelta:%v, deltaSize:%d, file:%s\n", isDeltaSmall, dsize, deltaFileName)
+			//		if isDeltaSmall {
+			//			deltaHash = utils.GetFileHash( deltaFileName, hashSuffix)
+			//			filePart = utils.NewFileMeta(utils.FILE_META_TYPE_REGULAR, "", 0, dsize, deltaHash) //createJsonTextForType(deltaHash, dsize, utils.FILE_META_TYPE_REGULAR);
+			//			deltaFileObjName := utils.GetTopObjectsFolder() + utils.HashToPath(deltaHash) + utils.EXT_OBJ
+			//			utils.Rename(deltaFileName, deltaFileObjName)
+			//			utils.Debugf("DeltaHash:%s\n", deltaHash)
+			//			filePart.SetFileHash( deltaHash )
+			//			setFileMeta(filePart, "", folder.Repository, indexBinRow.LastModified)
+			//			//if err := CloudCopyLz4File(deltaFileObjName, filePart.P, encrypt); err != nil {
+			//			if err := CompressAndUpload(deltaFileObjName, filePart,deletes, false, false, "", objects, failedUploads); err != nil {
+			//				//utils.Error("Error occurred in CloudCopy: ", err)
+			//				//failedUploads.Store(deltaFileObjName, filePart)
+			//			} else {
+			//				//AddDatFile(filePart, datFiles)
+			//				//SaveDatFileByString(deltaHash, jsonText, utils.GetTopObjectsFolder())
+			//				mType = utils.FILE_META_TYPE_DIFF
+			//			}
+			//		}
+			//	}
+			//}
 			var fileMeta *utils.FileMeta
 			utils.Debugf("FileHash:%s, type:%d\n", fileHash, mType)
-			if mType == utils.FILE_META_TYPE_DIFF {
-				fileMeta = utils.NewFileMeta(mType, deltaHash, 0, s, fileHash)
-				fileMeta.B = oldHash
-				utils.Debugf("Data:%s; json:%s\n", oldHash, jsonText)
-
-			} else {
-				fileMeta = utils.NewFileMeta(mType, "", 0, s, fileHash) // createJsonTextForType(fileHash, s, mType); //string(Bytes);
-				//if(encrypt) {fileMeta.SData = NewAesGcm();}
-			}
+			//if mType == utils.FILE_META_TYPE_DIFF {
+			//	fileMeta = utils.NewFileMeta(mType, deltaHash, 0, s, fileHash)
+			//	fileMeta.B = oldHash
+			//	utils.Debugf("Data:%s; json:%s\n", oldHash, jsonText)
+			//
+			//} else {
+			fileMeta = utils.NewFileMeta(mType, "", 0, s, fileHash) // createJsonTextForType(fileHash, s, mType); //string(Bytes);
+			//}
 			if s > 0 {
 				setFileMeta(fileMeta, "", folder.Repository, indexBinRow.LastModified)
 				//if err:=CloudCopyLz4File(objFilePath, fileMeta.P, encrypt); err != nil {
-				if err := CompressAndUpload(objFilePath, fileMeta,deletes, false, false, ""); err != nil {
-					utils.Error("Error occurred in CloudCopy: ", err)
-					failedUploads.Store(objFilePath, fileMeta)
-				} else {
-					jsonText = utils.FileMetaToString(fileMeta)
-				}
+				_ = CompressAndUpload(objFilePath, fileMeta,deletes, false, false, "", objects);
 			}
 		}
 	}
 
-	if complete {
-		utils.Debugf("================== FileSize:%d, datFile:%s; JSON:\n%s\n", s, fileHash, jsonText)
-		fm := utils.StringToFileMeta(jsonText);
-		if(fm != nil) {
-			fm.SetFileHash( fileHash );
-			//AddDatFile(fm, datFiles);
-			//SaveDatFileByString(fileHash, jsonText)
-			objects.Store(fileHash, fm)
-		}
-	}
+	//if complete {
+	//	utils.Debugf("================== FileSize:%d, datFile:%s; JSON:\n%s\n", s, fileHash, jsonText)
+	//	fm := utils.StringToFileMeta(jsonText);
+	//	if(fm != nil) {
+	//		fm.SetFileHash( fileHash );
+	//		//AddDatFile(fm, datFiles);
+	//		//SaveDatFileByString(fileHash, jsonText)
+	//		objects.Store(fileHash, fm)
+	//	}
+	//}
 
 	return ret, filePart
 }
@@ -383,7 +361,7 @@ func appendThumbnail(folderHash, fileHash, file string, toEncrypt bool)( int, er
 			utils.Debug("Error is ", err)
 		}
 	} else {
-		utils.AppendBytes(destFile, buf)
+		_ = utils.AppendBytes(destFile, buf)
 	}
 	if err = utils.AppendFile(destFile, file); err != nil {
 		return  0, err;
@@ -400,7 +378,7 @@ func uploadThumbnail(repo * utils.Repository, folderHash string, deletes  *syncm
 	filePart := utils.NewFileMeta(utils.FILE_META_TYPE_THUMBNAIL, "", 0, size, folderHash)
 	filePart.SetRepository( repo )
 	filePart.SetLastModified( uint32(time.Now().Unix()) )
-	if err = CompressAndUpload(destFile, filePart, deletes, true, true, ""); err != nil {
+	if err = CompressAndUpload(destFile, filePart, deletes, true, true, "",  nil); err != nil {
 		return nil, err;
 	}
 
@@ -425,25 +403,7 @@ func RestoreThumbnails(folderHash string){
 				fileHash := fmt.Sprintf("%x", buf[start:start+utils.HASH_BYTE_COUNT]);
 				start += utils.HASH_BYTE_COUNT;
 				tmpFile := utils.GetTopObjectsFolder() + utils.HashToPath(folderHash) +  "_" + fileHash +".png"
-				if ! utils.FileExists(tmpFile) {
-					utils.WriteBytesSafe(tmpFile, buf[start:start+size]);
-					if (first == 1) { //encrypted
-						key, err := utils.GetFileEncKey(fileHash);
-						if err != nil {
-							fmt.Println("Cannot get encryption key")
-							break;
-						}
-						tmpFile2 := utils.GetTopObjectsFolder() + utils.HashToPath(folderHash) + "_" + fileHash + ".t2"
-						if err := utils.DecryptFile(tmpFile, tmpFile2, &key); err != nil {
-							break;
-						}
-						//utils.RemoveFile(tmpFile)
-						src, _ := imaging.Open(tmpFile2)
-						err = imaging.Save(src, tmpFile)
-						utils.RemoveFile(tmpFile2)
-						//utils.Rename(tmpFile2, tmpFile)
-					}
-				}
+				go writeThumbnail(tmpFile, folderHash, fileHash,  buf[start:start+size], first == 1)
 				start += size;
 				if (start >= len) {
 					break;
@@ -453,4 +413,28 @@ func RestoreThumbnails(folderHash string){
 
 		}
 	}
+}
+
+func writeThumbnail(tmpFile , folderHash, fileHash string, buf []byte, isEncrypted bool){
+	if ! utils.FileExists(tmpFile) {
+		utils.WriteBytesSafe(tmpFile, buf);
+		if (isEncrypted) { //encrypted
+			key, err := utils.GetFileEncKey(fileHash);
+			if err != nil {
+				fmt.Println("Cannot get encryption key")
+				return;
+			}
+			tmpFile2 := utils.GetTopObjectsFolder() + utils.HashToPath(folderHash) + "_" + fileHash + ".t2"
+			if err := utils.DecryptFile(tmpFile, tmpFile2, &key); err != nil {
+				return;
+			}
+			//utils.RemoveFile(tmpFile)
+			if src, err := imaging.Open(tmpFile2) ; err == nil {
+				_ = imaging.Save(src, tmpFile)
+			}
+			utils.RemoveFile(tmpFile2)
+			//utils.Rename(tmpFile2, tmpFile)
+		}
+	}
+
 }

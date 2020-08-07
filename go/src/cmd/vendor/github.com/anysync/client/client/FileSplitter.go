@@ -77,22 +77,21 @@ func closeWriterAndFile(writer *bufio.Writer, f *os.File) {
 
 const POL = utils.Pol(0x3DA3358B4DC173)
 
-func SplitAndUpload(repository * utils.Repository, base string, objects *syncmap.Map, failedUploads *syncmap.Map, deletes * syncmap.Map) (string,  error) {
+func SplitAndUpload(repository * utils.Repository, base string, objects *syncmap.Map,  deletes * syncmap.Map, fileHash string) ( error) {
 	filename := base + utils.EXT_OBJ
 	fileSize := utils.FileSize(filename)
 	var subfile int64 = 0
 	if fileSize < 1024*1024 {
-		return "", nil
+		return  nil
 	} //no need to split
 
 	f, err := os.OpenFile(filename, os.O_RDONLY, 0)
 	if err != nil {
-		return "", err
+		return  err
 	}
 	defer f.Close()
 
 	var wholeBuf []byte
-	//var chunkSize int64 ;
 	fileMeta := new(utils.FileMeta)
 	fileMeta.T = utils.FILE_META_TYPE_CHUNKS
 	fileMeta.S = fileSize
@@ -107,12 +106,12 @@ func SplitAndUpload(repository * utils.Repository, base string, objects *syncmap
 	for subfile = 0; ; subfile++ {
 		partFileName := fmt.Sprintf("%s/%s.%d", utils.GetTopTmpFolder(), random, subfile)
 		chunk, meta, increment, err := createChunk(repository, chnker, partFileName)
-		//utils.Debugf("packSize:%d, PartFileName:%s, packFile:%s", packSize, partFileName, tmpPackFileName)
+		utils.Debugf("SplitAndUpload. packSize:%d, PartFileName:%s", packSize, partFileName)
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return "", err
+			return  err
 		}
 		if meta == nil { //the chunk already exists in the objects directory
 			continue
@@ -123,8 +122,9 @@ func SplitAndUpload(repository * utils.Repository, base string, objects *syncmap
 		hash = append(hash, chunk.Hash...)
 		wholeBuf = append(wholeBuf, chunk.Hash...)
 
+
 		if packSize >= utils.PACK_FILE_SIZE_MAX_THRESHOLD {
-			generateFinalPackFile(repository,  fileParts, objects,  failedUploads, deletes)
+			generateFinalPackFile(repository,  fileParts, objects,   deletes)
 			fileParts = nil
 			packSize = 0
 		}
@@ -132,13 +132,13 @@ func SplitAndUpload(repository * utils.Repository, base string, objects *syncmap
 
 	if packSize > 0 && len(fileParts) > 0 {
 		utils.Debug("### ----  Leftover pack size:", packSize, "; packs.count: ", len(fileParts))
-		generateFinalPackFile(repository,  fileParts, objects,  failedUploads, deletes)
+		generateFinalPackFile(repository,  fileParts, objects,   deletes)
 	}
 
 	fileMeta.P = encodeHashes(hash)
-	full := utils.FileMetaToString(fileMeta)
-	utils.Debug("Return from SplitAndUpload. full: ", full)
-	return full,  err
+	fileMeta.SetFileHash(fileHash)
+	objects.Store(fileHash, fileMeta)
+	return   err
 }
 
 func encodeHashes(hashes []byte)string{

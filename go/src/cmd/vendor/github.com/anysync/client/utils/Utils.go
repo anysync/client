@@ -216,13 +216,14 @@ func NewRealFileInfo(f FileInfo, absPath string) *RealFileInfo {
 	fi.IsSymlink = IsSymlink(f)
 	fi.AbsPath = absPath
 
-	t, _ := times.Stat(absPath)
-	fi.LastModified = uint32(t.ModTime().Unix()) // uint32(f.ModTime().Unix());
-	if t.HasBirthTime() {
-		fi.CreateTime = uint32(t.BirthTime().Unix())
-		//Debugf("FileHash:%s, birthTime:%d\n", fi.RemoteName, fi.CreateTime)
-	} else {
-		fi.CreateTime = fi.LastModified
+	if t, err := times.Stat(absPath); err == nil {
+		fi.LastModified = uint32(t.ModTime().Unix()) // uint32(f.ModTime().Unix());
+		if t.HasBirthTime() {
+			fi.CreateTime = uint32(t.BirthTime().Unix())
+			//Debugf("FileHash:%s, birthTime:%d\n", fi.RemoteName, fi.CreateTime)
+		} else {
+			fi.CreateTime = fi.LastModified
+		}
 	}
 	return fi
 }

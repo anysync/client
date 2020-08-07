@@ -18,11 +18,11 @@ import (
 )
 
 var HasGui  = false;
-func SendToLocal(command string)error {
+func SendToLocal(command string) {
 	if  command == MSG_PREFIX {
 		go sendEmptyMsg();
 	}
-	return SendToLocalWithDelay(command, 0)
+	SendToLocalWithDelay(command, 0)
 }
 
 var lastSentMsg = time.Now()
@@ -42,9 +42,9 @@ func SendMsg(msg string){
 }
 
 //@param delay in seconds
-func SendToLocalWithDelay(command string, delay int64)error{
+func SendToLocalWithDelay(command string, delay int64){
 	if(!HasGui){
-		return nil;
+		return ;
 	}
 	if(delay > 0){
 		time.Sleep(time.Duration(delay) * time.Second)
@@ -53,7 +53,7 @@ func SendToLocalWithDelay(command string, delay int64)error{
 	u := "http://localhost:65068/" + command;
 	//Debug("localcppcommand. URL: " , u)
 	HttpGetCommand(u, nil)
-	return nil
+	return
 }
 
 func SendToLocalWithParams(command string, args ...string)error{

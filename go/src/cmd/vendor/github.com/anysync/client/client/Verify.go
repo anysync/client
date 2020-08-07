@@ -49,14 +49,14 @@ func DoFixRepo(folder, hash string) (string,error){
 	repos:=utils.GetAllRepositoryList(false);
 	fileMeta.SetRepository( repos[0] )
 	fileMeta.SetNoStaging( true );
-	if err := CompressAndUpload(objName, fileMeta, nil, !cp.Encrypted, !cp.Compressed, ""); err != nil {
+	if err := CompressAndUpload(objName, fileMeta, nil, !cp.Encrypted, !cp.Compressed, "",  nil); err != nil {
 		return fileName, errors.New("cannot upload to cloud at this moment")
 	}
 	data := make(map[string][]byte)
 	data["hash"] = []byte(hash)
 	if val, f := utils.GetFileID(cp.Path) ; f {
 		data["id"] = []byte(val)
-		utils.Debug("Found ID:", val , "; For fileMetan.CloudPath:", cp.Path)
+		utils.Debug("Found ID:", val , "; For fileMeta.CloudPath:", cp.Path)
 		utils.UpdateFileID(fileMeta, val)
 		utils.UpdateDatFile(hash, []byte(utils.FileMetaToString(fileMeta)), "")
 		//utils.WriteString(datFile, utils.FileMetaToString(fileMeta))
@@ -123,7 +123,6 @@ func checkRepo(p *ants.PoolWithFunc, wg * sync.WaitGroup, repo *utils.Repository
 func doCheckRepo(i interface{}) {
 	d := i.(*RepoNotSynced)
 	repo := d.repo
-	//var notsynced []string
 	dir := repo.Local
 	hash := repo.Hash
 	name := repo.Name
@@ -143,7 +142,6 @@ func doCheckRepo(i interface{}) {
 			return
 		}
 	}
-	//utils.Debug("Notsynced:", d.notsynced)
 	return
 }
 func checkRow(io *utils.IndexBinRow, args ...interface{}) error {
