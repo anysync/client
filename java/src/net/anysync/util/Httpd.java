@@ -147,7 +147,7 @@ public class Httpd implements java.io.Serializable
             }
             else if(url.startsWith("/startUpload"))
             {
-                Main.setStatus("Start to upload...");
+                Main.setStatus("Start uploading files...");
             }
             else if(url.startsWith("/failUpload"))
             {
