@@ -1284,5 +1284,5 @@ func GetFullPathHash(relativePath string) []string {
 
 func TimeTrack(start time.Time, name string) {
 	elapsed := time.Since(start)
-	Info( name, "took", elapsed)
+	Debug( name, "took", elapsed)
 }
