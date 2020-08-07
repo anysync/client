@@ -12,7 +12,8 @@ a secure cloud storage service with end-to-end encryption.
 ## Installation 
 
 
-Download and install the lastest [release](https://github.com/anysync/client/releases) and install it.
+Download and install the lastest [release](https://github.com/anysync/client/releases). Currently supported platforms include
+Windows, 64-bit Linux and 64-bit macOS.
 
 If you choose to use self-hosted edition, you need to install AnySync [server](https://github.com/anysync/server) too.
 
