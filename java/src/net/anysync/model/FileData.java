@@ -12,12 +12,15 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.paint.Color;
+import javafx.util.Duration;
 import net.anysync.ui.Main;
 import net.anysync.util.AppUtil;
 import net.anysync.util.IndexBinRow;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import java.awt.*;
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import static net.anysync.util.AppUtil.dateFormat;
 
@@ -27,16 +30,17 @@ public class FileData
 	
 	private SimpleStringProperty name, type,size,created,modified;
 	private Button btn;
-	private String hash;
+	private String hash, pathText;
 	private boolean isDir;
 	public final static Color FOLDER_COLOR = Color.rgb(13, 36, 129, 1);
 	private long index;
 
-	public FileData(String folderHash, IndexBinRow row)
+	public FileData(String folderHash, IndexBinRow row, String path)
 	{
 		btn = new Button();
 		FontIcon icon = new FontIcon();
 		index = row.index;
+		pathText = path;
 		name = new SimpleStringProperty(row.name);
 		hash = row.getHashString();//IndexBinRow.byteArrayToHex(row.hash);
 		isDir = row.isFileModeDirectory();
@@ -68,6 +72,7 @@ public class FileData
 
 						Tooltip tooltip = new Tooltip();
 						tooltip.setGraphic(new ImageView(img));
+						tooltip.setShowDelay(Duration.millis(100));
 						tooltip.setStyle("-fx-background-radius: 0 0 0 0; -fx-background-color: aquamarine;");
 						btn.setTooltip(tooltip);
 						icon = null;
@@ -94,6 +99,16 @@ public class FileData
 			btn.setMaxSize(ICON_SIZE - 12, ICON_SIZE - 12);
 			btn.setGraphic(icon);
 		}
+		btn.setOnAction(e->{
+			try
+			{
+				Desktop.getDesktop().open(new File(this.pathText + "/" + getName()));
+			}
+			catch(IOException ie)
+			{
+			}
+
+		});
 		type = new SimpleStringProperty(typeString) ;//new SimpleStringProperty("desc");
 		size = isDir ? new SimpleStringProperty("--") : new SimpleStringProperty(getSizeString(row.fileSize));
 		created = new SimpleStringProperty(dateFormat.format(row.createTime*1000));
