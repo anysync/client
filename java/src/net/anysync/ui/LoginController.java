@@ -109,16 +109,7 @@ public class LoginController implements Initializable
             return;
         }
 
-
-        int ret = signin(username, password, txtServer.getText().trim(), false);
-        if (ret == 401)
-        {
-            setError("User name or password are not correct.");
-        }
-        else if(ret == 405)
-        {
-            setError("Cannot connect to the server");
-        }
+        signin(username, password, txtServer.getText().trim(), false, lblErrors);
     }
 
     public static void openMainPane(Stage stage)
@@ -189,7 +180,7 @@ public class LoginController implements Initializable
     }
 
     //we gonna use string to check for status
-    public static int signin(String email, String password, String server, boolean isSignup)
+    public static void signin(String email, String password, String server, boolean isSignup, Label lblErrors)
     {
         Stage stage = (Stage) Main.getCurrentStage().getScene().getWindow();
 
@@ -198,20 +189,39 @@ public class LoginController implements Initializable
         map.put("p", password);
         map.put("s", server);
         String action = isSignup?"signup":"login";
-        NetUtil.HttpReturn response = NetUtil.syncSendGetCommand(action, map, false);
-        if(response.code == 200)
-        {
-            AddRepoPane pane = new AddRepoPane("AnySync", false);
-            pane.show(null);
-            openMainPane(stage);
-        }
-        else if(response.code == 201)
-        {//restore account
-            //wait for /askrestore: msg
-            Httpd.waiting();
-            Platform.runLater(() -> openChooseMode(stage));
-        }
-        return response.code;
+        new Thread(() -> {
+            NetUtil.HttpReturn response = NetUtil.syncSendGetCommand(action, map, false);
+            if(response.code == 200)
+            {
+                Platform.runLater(() -> {
+                    AddRepoPane pane = new AddRepoPane("AnySync", false);
+                    pane.show(null);
+                    openMainPane(stage);
+                });
+            }
+            else if(response.code == 201)
+            {//restore account
+                //wait for /askrestore: msg
+                Httpd.waiting();
+                Platform.runLater(() -> openChooseMode(stage));
+            }
+            else if(response.code == 401)
+            {
+                setLblError(lblErrors, "User name or password are not correct.");
+            }
+            else if(response.code == 405)
+            {
+                setLblError(lblErrors, "Cannot connect to the server");
+            }
+        }).start();
+    }
+
+    private static void setLblError(Label lblErrors,  String text)
+    {
+        Platform.runLater(()-> {
+            lblErrors.setTextFill(Color.TOMATO);
+            lblErrors.setText(text);
+        });
     }
 
     private void setLblError(Color color, String text)

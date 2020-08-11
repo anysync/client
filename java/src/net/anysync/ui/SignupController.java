@@ -93,15 +93,7 @@ public class SignupController implements Initializable
             return;
         }
 
-        int ret = LoginController.signin(txtUsername.getText().trim(), txtPassword.getText().trim(),  txtServer.getText().trim(), true);
-        if(ret == 401)
-        {
-            setError("User name or password are not correct.");
-        }
-        else if(ret == 405)
-        {
-            setError("Cannot connect to the server");
-        }
+        LoginController.signin(txtUsername.getText().trim(), txtPassword.getText().trim(),  txtServer.getText().trim(), true, lblErrors);
     }
 
     @Override
