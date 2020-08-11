@@ -83,7 +83,7 @@ public class FileBrowserMainController
 		List<FileData> homeDirList = new ArrayList<>();
 		for(IndexBinRow row : rows)
 		{
-			FileData fileData = new FileData(folderHash,row);
+			FileData fileData = new FileData(folderHash,row, localFolder + pathText.getText());
 			homeDirList.add(fileData);
 		}
 		createMainPane(homeDirList);
@@ -426,7 +426,7 @@ public class FileBrowserMainController
 		List<FileData> homeDirList = new ArrayList<>(rows.size());
 		for(IndexBinRow row : rows)
 		{
-			homeDirList.add(new FileData(folderHash, row));
+			homeDirList.add(new FileData(folderHash, row, localFolder + pathText.getText()));
 		}
 		listTableData(homeDirList);
 		setPathText();
