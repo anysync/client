@@ -84,7 +84,7 @@ public class AddRepoPane extends BorderPane implements UiUtil.DialogSetter
         DirectoryChooser fileChooser = new DirectoryChooser();
         fileChooser.setTitle("Choose a local directory for syncing");
         File f = fileChooser.showDialog(window);
-        field.setText (f.getAbsolutePath());
+        if(f != null) field.setText (f.getAbsolutePath());
     }
 
     @Override
