@@ -13,6 +13,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
+import net.anysync.ui.FileBrowserMainController;
 import net.anysync.ui.Main;
 import net.anysync.util.AppUtil;
 import net.anysync.util.IndexBinRow;
@@ -30,17 +31,18 @@ public class FileData
 	
 	private SimpleStringProperty name, type,size,created,modified;
 	private Button btn;
-	private String hash, pathText;
+	private String hash;
 	private boolean isDir;
 	public final static Color FOLDER_COLOR = Color.rgb(13, 36, 129, 1);
 	private long index;
+	FileBrowserMainController controller;
 
-	public FileData(String folderHash, IndexBinRow row, String path)
+	public FileData(String folderHash, IndexBinRow row, FileBrowserMainController c)
 	{
 		btn = new Button();
 		FontIcon icon = new FontIcon();
 		index = row.index;
-		pathText = path;
+		controller = c;
 		name = new SimpleStringProperty(row.name);
 		hash = row.getHashString();//IndexBinRow.byteArrayToHex(row.hash);
 		isDir = row.isFileModeDirectory();
@@ -102,7 +104,7 @@ public class FileData
 		btn.setOnAction(e->{
 			try
 			{
-				Desktop.getDesktop().open(new File(this.pathText + "/" + getName()));
+				Desktop.getDesktop().open(new File(controller.getFullLocalPath( getName()))) ;
 			}
 			catch(IOException ie)
 			{

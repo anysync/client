@@ -83,7 +83,7 @@ public class FileBrowserMainController
 		List<FileData> homeDirList = new ArrayList<>();
 		for(IndexBinRow row : rows)
 		{
-			FileData fileData = new FileData(folderHash,row, localFolder + pathText.getText());
+			FileData fileData = new FileData(folderHash,row, this);
 			homeDirList.add(fileData);
 		}
 		createMainPane(homeDirList);
@@ -406,7 +406,7 @@ public class FileBrowserMainController
 		}
 	}
 
-	private String getFullLocalPath(String fname)
+	public String getFullLocalPath(String fname)
 	{
 		String path = pathText.getText();
 		int pos = path.indexOf("/", 1);
@@ -426,7 +426,7 @@ public class FileBrowserMainController
 		List<FileData> homeDirList = new ArrayList<>(rows.size());
 		for(IndexBinRow row : rows)
 		{
-			homeDirList.add(new FileData(folderHash, row, localFolder + pathText.getText()));
+			homeDirList.add(new FileData(folderHash, row, this));
 		}
 		listTableData(homeDirList);
 		setPathText();
