@@ -9,6 +9,10 @@ a secure cloud storage service with end-to-end encryption.
 - Deduplication: only uniqure data is compressed and uploaded to the cloud.
 - Versioned file backup and sync.
 
+## Documentation
+                                 
+Please see the AnySync [website](https://anysync.net/documentation/index.html) for more detailed doucmentation.
+
 ## Installation 
 
 
