@@ -110,7 +110,7 @@ public class SettingsPane extends BorderPane implements UiUtil.DialogSetter
         pane.setPadding(new Insets(25, 25, 25, 25));
         Label lab = new Label(Main.getStringWithColon("Mode"));
         pane.add(lab, 0, 1);
-        ObservableList<String> options = FXCollections.observableArrayList("Sync - Upload & download", "Placehold");
+        ObservableList<String> options = FXCollections.observableArrayList("Sync - Upload & download", "Placehold", "New Only");
         _modes = new ComboBox(options);
         _modes.valueProperty().addListener((ChangeListener<String>) (component, oldValue, newValue) -> {
             if(oldValue != null && !newValue.equals(oldValue) && newValue.equals(options.get(0)))
