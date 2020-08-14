@@ -21,7 +21,9 @@ Windows, 64-bit Linux and 64-bit macOS.
 
 If you choose to use self-hosted edition, you need to install AnySync [server](https://github.com/anysync/server) too.
 
-## Technical Details
+## Technology Overview
+
+### Data Encryption
 - Secure random 256-bit file key and auth key are generated.
 - A [NaCl](https://en.wikipedia.org/wiki/NaCl_(software)) box public/private key pair is generated.
 - In the login request, client sends out a data structure with these data:
@@ -42,4 +44,17 @@ The key is used for encrypting the file key, auth key, access token and public/p
 The access token is saved to a local file called "access.keys", which is unecrypted. This file is for authenticating the user, similar to the private key file used by SSH client for passwordless login.
 
 All files will be encrypted by the key using 256-bit [AES-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode "AES-GCM"), then encrypted file will be uploaded to the cloud.
+
+### Data Transmission
+
+The communication between AnySync client and server is gRPC with TLS.
+
+[Rclone](https://github.com/rclone/rclone) is used to transfer files to any S3 compatible cloud storage servers. 
+
+### Data Format
+
+AnySync stores data in a format inspired by the [Git](https://en.wikipedia.org/wiki/Git).
+File metadata are stored under tree directory. File data are encrypted, compressed and stored as objects with names being their hash values, and file names
+are encrypted and stored in sqlite database. 
+
 
