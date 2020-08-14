@@ -30,8 +30,9 @@ public class ChooseMode extends BorderPane  implements UiUtil.DialogSetter
     private Button[] _buttons;
 
     private Label _errorField;
-    private CheckBox _sync;
+    private RadioButton _sync;
     private Stage _stage;
+    private RadioButton _newOnly;
 
     public ChooseMode(Stage s)
     {
@@ -59,25 +60,35 @@ public class ChooseMode extends BorderPane  implements UiUtil.DialogSetter
         Text text = new Text();
         text.setText(Main.getStringWithColon("Mode"));
         text.setStyle("-fx-font-size:16pt; -fx-font-weight: bold;");
-        pane.add(text, 0, 0);
+        pane.add(text, 0, 0, 3, 1);
 
-        CheckBox placeholder = new CheckBox("Placeholder");
+        RadioButton placeholder = new RadioButton("Placeholder Mode - Just a placeholder and no files will be downloaded");
         placeholder.setSelected(true);
-        UiUtil.setTooltip(placeholder, "Just a placeholder and no files will be downloaded");
-        pane.add(placeholder, 0, 1);
-        CheckBox sync = new CheckBox("Sync");
+//        UiUtil.setTooltip(placeholder, "Just a placeholder and no files will be downloaded");
+        pane.add(placeholder, 0, 1, 3, 1);
+
+        RadioButton sync = new RadioButton("Sync Mode - Bidirectional sync");
         _sync = sync;
         sync.setSelected(false);
-        UiUtil.setTooltip(sync, "Keep existing files under the folder and download all files from cloud. Existing\n" +
-                "      files in the local directory will be synced later.");
-        pane.add(sync, 0, 2);
+//        UiUtil.setTooltip(sync, "Keep existing files under the folder and download all files from cloud. Existing\n      files in the local directory will be synced later.");
+        pane.add(sync, 0, 2, 3, 1);
+
+        _newOnly = new RadioButton("New Only Mode - Only track new files and ignore other local file changes");
+        _newOnly.setSelected(false);
+//        UiUtil.setTooltip(_newOnly, "Only track new files and ignore other local file changes.");
+        pane.add(_newOnly, 0, 3, 3, 1);
+
+        final ToggleGroup group = new ToggleGroup();
+        placeholder.setToggleGroup(group);
+        _sync.setToggleGroup(group);
+        _newOnly.setToggleGroup(group);
 
         String[] repos = NetUtil.getRepos();
         _localFolders = new TextField[repos.length];
         _buttons = new Button[repos.length];
         _labels = new Label[repos.length];
 
-        int start = 3;
+        int start = 4;
         for(int i = 0; i < repos.length; i++)
         {
             TextField localFolder = new TextField();
@@ -106,12 +117,17 @@ public class ChooseMode extends BorderPane  implements UiUtil.DialogSetter
         pane.add(_errorField,0, 4, 3, 1);
 
         placeholder.selectedProperty().addListener((observable, oldValue, newValue) ->{
-            sync.setSelected(!newValue);
             _errorField.setText("");
         });
         sync.selectedProperty().addListener((observable, oldValue, newValue) -> {
-            placeholder.setSelected(!newValue);
-
+            for(int i = 0; i < _localFolders.length; i++)
+            {
+                _localFolders[i].setVisible(newValue);
+                _buttons[i].setVisible(newValue);
+                _labels[i].setVisible(newValue);
+            }
+        });
+        _newOnly.selectedProperty().addListener((observable, oldValue, newValue) -> {
             for(int i = 0; i < _localFolders.length; i++)
             {
                 _localFolders[i].setVisible(newValue);
@@ -134,7 +150,7 @@ public class ChooseMode extends BorderPane  implements UiUtil.DialogSetter
         btOk.addEventFilter(
                 ActionEvent.ACTION,
                 event -> {
-                    if(_sync.isSelected())
+                    if(_sync.isSelected() || _newOnly.isSelected())
                     {
                         for(int i = 0; i < _localFolders.length; i++)
                         {
@@ -163,7 +179,20 @@ public class ChooseMode extends BorderPane  implements UiUtil.DialogSetter
             params.put("local" + String.valueOf(i), _localFolders[i].getText().trim());
 
         }
-        params.put("mode", _sync.isSelected() ? "s" :"p");
+        String m;
+        if(_sync.isSelected())
+        {
+            m = "s";
+        }
+        else if(_newOnly.isSelected())
+        {
+            m = "n";
+        }
+        else
+        {
+            m = "p";
+        }
+        params.put("mode", m);
         NetUtil.HttpReturn ret = NetUtil.syncSendGetCommand("updatelocal", params, false);
         return ret.code == 200;
     }
