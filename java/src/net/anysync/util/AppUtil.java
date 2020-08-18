@@ -5,6 +5,8 @@
 // found in the LICENSE file.
 package net.anysync.util;
 
+import com.moandjiezana.toml.Toml;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -118,4 +120,16 @@ public final class AppUtil
 		return "";
 	}
 
+	private static Toml _toml;
+	public static Toml getConfig()
+	{
+		if(_toml != null) return _toml;
+		String file = System.getProperty("user.home") + "/.AnySync/current";
+		String content = FileUtil.readFile(file);
+		if(content == null) return null;
+
+		file = System.getProperty("user.home") + "/.AnySync/" + content.trim() + "/config";
+		content = FileUtil.readFile(file);
+		return new Toml().read(content);
+	}
 }

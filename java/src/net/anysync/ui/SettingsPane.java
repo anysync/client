@@ -47,6 +47,8 @@ public class SettingsPane extends BorderPane implements UiUtil.DialogSetter
     private TextField _minAge;
     private TextField _maxAge;
     private TextField _threadCount;
+    private TextField _scanInterval;
+    private TextArea _selectedFolders;
     private TextArea _includes;
     private TextArea _excludes;
     private ComboBox _modes;
@@ -80,13 +82,15 @@ public class SettingsPane extends BorderPane implements UiUtil.DialogSetter
 
     public void show()
     {
-        if(UiUtil.createDialog(this, Main.getString("Settings"), WIDTH, HEIGHT + 60, this, true))
+        if(UiUtil.createDialog(this, Main.getString("Settings"), WIDTH, HEIGHT + 60, this, true, true))
         {
             settings.put("rate", _bandwidth.getText().trim());
             settings.put("maxsize", _maxSize.getText().trim());
             settings.put("minage",_minAge.getText().trim());
             settings.put("maxage", _maxAge.getText().trim());
             settings.put("threadcount", _threadCount.getText().trim());
+            settings.put("scaninterval", _scanInterval.getText().trim());
+            settings.put("selectedfolders", _selectedFolders.getText().trim());
             settings.put("included", _includes.getText().trim());
             settings.put("excluded", _excludes.getText().trim());
             settings.put("mode", String.valueOf(_modes.getSelectionModel().getSelectedIndex()));
@@ -103,10 +107,15 @@ public class SettingsPane extends BorderPane implements UiUtil.DialogSetter
         pane.setHgap(10);
         pane.setVgap(10);
         ColumnConstraints col1 = new ColumnConstraints();
-        col1.setPercentWidth(35);
+        col1.setPercentWidth(43);
         ColumnConstraints col2 = new ColumnConstraints();
-        col2.setPercentWidth(65);
-        pane.getColumnConstraints().addAll(col1, col2);
+        col2.setPercentWidth(7);
+
+        ColumnConstraints col3 = new ColumnConstraints();
+        col3.setPercentWidth(43);
+        ColumnConstraints col4 = new ColumnConstraints();
+        col4.setPercentWidth(7);
+        pane.getColumnConstraints().addAll(col1, col2, col3, col4);
         pane.setPadding(new Insets(25, 25, 25, 25));
         Label lab = new Label(Main.getStringWithColon("Mode"));
         pane.add(lab, 0, 1);
@@ -127,25 +136,38 @@ public class SettingsPane extends BorderPane implements UiUtil.DialogSetter
         }
         _modes.getSelectionModel().select(mIndex);
 
-        pane.add(_modes, 1, 1);
+        pane.add(_modes, 1, 1, 4, 1);
 
-        _bandwidth = addTextLine(pane, 2, "Bandwidth limit (MBytes/s)", "rate");
-        _maxSize = addTextLine(pane, 3, "Maximum file size (GBytes)", "maxsize");
-        _minAge =addTextLine(pane, 4, "Minimum file age (seconds)", "minage");
-        _maxAge =addTextLine(pane, 5, "Maximum file age (days)", "maxage");
-        _threadCount =addTextLine(pane, 6, "Number of upload threads", "threadcount");
+        _bandwidth = addTextLine(pane, 2, "Bandwidth limit (MBytes/s)", "rate", true);
+        _maxSize = addTextLine(pane, 2, "Maximum file size (GBytes)", "maxsize", false);
+        _minAge =addTextLine(pane, 3, "Minimum file age (seconds)", "minage", true);
+        _maxAge =addTextLine(pane, 3, "Maximum file age (days)", "maxage", false);
+        _threadCount =addTextLine(pane, 4, "Number of upload threads", "threadcount", true);
+        _scanInterval = addTextLine(pane, 4, "Scan Interval (minutes)", "scaninterval", false);
+
+        lab = new Label(Main.getStringWithColon("Selective Sync Folders"));
+        pane.add(lab, 0, 5);
+        Button mod = new Button("Modify");
+        mod.setOnAction(e->{
+            SelectiveSync.open(_selectedFolders);
+        });
+        pane.add(mod, 2, 5);
+        _selectedFolders = new TextArea(settings.get("selectedfolders"));
+        _selectedFolders.setWrapText(true);
+        _selectedFolders.setEditable(false);
+        pane.add(_selectedFolders, 0, 6, 4, 1);
 
         lab = new Label(Main.getStringWithColon("Include files only"));
-        pane.add(lab, 0, 7);
+        pane.add(lab, 0, 7, 4, 1);
         _includes = new TextArea(settings.get("included"));
         _includes.setWrapText(true);
-        pane.add(_includes, 0, 8, 2, 1);
+        pane.add(_includes, 0, 8, 4, 1);
 
         lab = new Label(Main.getStringWithColon("Ignored files"));
-        pane.add(lab, 0, 9);
+        pane.add(lab, 0, 9, 4, 1);
         _excludes = new TextArea(settings.get("excluded"));
         _excludes.setWrapText(true);
-        pane.add(_excludes, 0, 10, 2, 1);
+        pane.add(_excludes, 0, 10, 4, 1);
 
         tab.setContent(pane);
     }
@@ -228,12 +250,13 @@ public class SettingsPane extends BorderPane implements UiUtil.DialogSetter
         pane.add(lab2, 1, lineNumber);
     }
 
-    private TextField addTextLine(GridPane pane, int lineNumber, String label, String key)
+    private TextField addTextLine(GridPane pane, int lineNumber, String label, String key, boolean left)
     {
+        int index = left ? 0 : 2;
         Label lab1 = new Label(Main.getStringWithColon(label));
-        pane.add(lab1, 0, lineNumber);
+        pane.add(lab1, index, lineNumber);
         TextField text = new TextField(settings.get(key));
-        pane.add(text, 1, lineNumber);
+        pane.add(text, index + 1, lineNumber);
         return text;
     }
 
@@ -288,15 +311,11 @@ public class SettingsPane extends BorderPane implements UiUtil.DialogSetter
         btOk.addEventFilter(
                 ActionEvent.ACTION,
                 event -> {
-                    if(!checkNumericField(_bandwidth) || !checkNumericField(_maxAge) || !checkNumericField(_maxSize) || !checkNumericField(_minAge) || !checkNumericField(_threadCount))
-                    {
-                        event.consume();
-                        return;
-                    }
-                    if(!password.getText().trim().equals(password2.getText().trim()))
+                    String p = password.getText().trim();
+                    if(p.length() == 0 || !p.equals(password2.getText().trim()))
                     {
                         Platform.runLater(() -> password.requestFocus());
-                        dialog.setHeaderText("Passwords do not match");
+                        dialog.setHeaderText("Passwords are empty or they do not match");
                         event.consume();
                         return;
                     }
@@ -318,8 +337,37 @@ public class SettingsPane extends BorderPane implements UiUtil.DialogSetter
     boolean checkNumericField(TextField f)
     {
         String val = f.getText().trim();
-        if(!val.isEmpty() && !StringUtil.isNumeric(val)) return false;
+        if(!val.isEmpty() && !StringUtil.isNumeric(val))
+        {
+            f.requestFocus();
+            return false;
+        }
         else return true;
+    }
+
+    boolean checkNumericField(TextField f, int minVal)
+    {
+        String val = f.getText().trim();
+        if(!val.isEmpty() && !StringUtil.isNumeric(val))
+        {
+            f.requestFocus();
+            return false;
+        }
+        try
+        {
+            int i = Integer.parseInt(val);
+            if(i >= minVal) return true;
+            else
+            {
+                f.requestFocus();
+                return false;
+            }
+        }
+        catch(Exception e)
+        {
+            f.requestFocus();
+            return false;
+        }
     }
 
     private void signout(String msg)
@@ -371,5 +419,18 @@ public class SettingsPane extends BorderPane implements UiUtil.DialogSetter
     public void setDialog(Dialog d)
     {
         settingDialog = d;
+        final Button btOk = (Button) d.getDialogPane().lookupButton(ButtonType.OK);
+        btOk.addEventFilter(
+                ActionEvent.ACTION,
+                event -> {
+                    if(!checkNumericField(_bandwidth, 0) || !checkNumericField(_maxAge, 0) || !checkNumericField(_maxSize, 0)
+                            || !checkNumericField(_minAge, 0) || !checkNumericField(_threadCount, 1) || !checkNumericField(_scanInterval, 1))
+                    {
+                        UiUtil.messageBox(Alert.AlertType.INFORMATION, "Error", "Invalid value.");
+                        event.consume();
+                        return;
+                    }
+
+                });
     }
 }

@@ -50,6 +50,7 @@ public class BinUtil implements java.io.Serializable
                     if(skipFirstRow) continue;
                 }
                 if(row.isDeleted()) continue;
+                if(row.getHashString().equals(AppUtil.SHARED_HASH)) continue;
                 keys.add(row.fileNameKey);
                 map.put(row.fileNameKey, row);
                 rows.add(row);

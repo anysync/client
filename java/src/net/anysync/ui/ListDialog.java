@@ -30,7 +30,7 @@ public class ListDialog extends BorderPane
 
     public void show(String title, int width, int height)
     {
-        UiUtil.createDialog(this, title, width, height + 60, null, false);
+        UiUtil.createDialog(this, title, width, height + 60, null, false, true);
     }
 
 }

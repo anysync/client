@@ -37,7 +37,7 @@ public class AddRepoPane extends BorderPane implements UiUtil.DialogSetter
     public void show(MainPane main)
     {
         _mainPane = main;
-        if(UiUtil.createDialog(this, Main.getString("Add"), WIDTH, HEIGHT + 60, this, hasCancelBtn))
+        if(UiUtil.createDialog(this, Main.getString("Add"), WIDTH, HEIGHT + 60, this, hasCancelBtn, true))
         {
             saveRepo();
         }

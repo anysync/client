@@ -5,15 +5,14 @@
 <?import javafx.scene.layout.*?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 
-<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0"  xmlns="http://javafx.com/javafx/8.0.171"
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"  prefWidth="600" xmlns="http://javafx.com/javafx/8.0.171"
       xmlns:fx="http://javafx.com/fxml/1" stylesheets="@/css/filebrowser.css" onMouseDragged="#mouseDragged" onMousePressed="#mousePressed"
-      fx:controller="net.anysync.ui.FileBrowserMainController">
+      fx:controller="net.anysync.ui.SelectiveSyncController">
   <children>
       <HBox alignment="CENTER_LEFT" prefHeight="40.0" HBox.hgrow="ALWAYS">
          <children>
             <HBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
                <children>
-
                    <Button text=""  onMouseClicked="#homeImageButtonClicked">
                        <graphic>
                            <FontIcon iconLiteral="fth-home" iconSize="20"/>
@@ -62,14 +61,8 @@
                                  AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
                  </children>
     </AnchorPane>
-      <HBox fx:id="hboxStatusBar" alignment="CENTER_LEFT" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+      <HBox fx:id="hboxStatusBar" alignment="CENTER" prefHeight="40.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-             <Label fx:id="statusLabel" alignment="CENTER_LEFT"  prefHeight="23.0" prefWidth="400.0" text="" textFill="#333" >
-                 <HBox.margin>
-                     <Insets left="10.0"/>
-                 </HBox.margin>
-             </Label>
-
          </children>
       </HBox>
   </children>

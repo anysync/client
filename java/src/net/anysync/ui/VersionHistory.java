@@ -100,12 +100,6 @@ public class VersionHistory extends BorderPane implements UiUtil.DialogSetter
         }
 
     }
-    public void show()
-    {
-        if(UiUtil.createDialog(this, Main.getString("Version History"), WIDTH, HEIGHT + 60, this, false))
-        {
-        }
-    }
 
     @Override
     public void setDialog(Dialog d)

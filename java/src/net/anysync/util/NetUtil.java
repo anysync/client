@@ -45,7 +45,6 @@ public class NetUtil implements java.io.Serializable
     public  static String LOCAL_URL_PREFIX = "http://127.0.0.1:65066/";
     public static HttpReturn syncSendGetCommand(String command, Map<String, String> params, boolean restartGoServer)
     {
-        String content = "";
         StringBuffer buf = new StringBuffer();
         if(params != null)
         {
@@ -60,7 +59,12 @@ public class NetUtil implements java.io.Serializable
             }
         }
         String url = LOCAL_URL_PREFIX + "rest/" + command + buf.toString();
-//        System.out.println("url:<" + url + ">");
+        return syncSendGetRequest(url, restartGoServer);
+    }
+
+    public static  HttpReturn syncSendGetRequest(String url, boolean restartGoServer)
+    {
+        String content = "";
         long t1 = System.currentTimeMillis();
         try (CloseableHttpClient httpclient = HttpClients.createDefault())
         {
@@ -139,6 +143,29 @@ public class NetUtil implements java.io.Serializable
         }
     }
 
+    //Track local changes and sync
+    public final static int CONFIG_MODE_BIDIRECTION =0  ;
+    //Placeholder, no local directory so do not track local changes.
+    public final static int CONFIG_MODE_PLACEHOLDER =1  ;
+    //Placeholder, with local directory,  do not track local deletes and modifies, but track new files.
+    public final static int CONFIG_MODE_NEW_ONLY    =2  ;
+
+    public static int MODE;
+    public static boolean isNonSyncMode()
+    {
+        return MODE != CONFIG_MODE_BIDIRECTION;
+    }
+
+    public static boolean isSyncMode()
+    {
+        return MODE == CONFIG_MODE_BIDIRECTION;
+    }
+
+    public static boolean isPlaceholderMode()
+    {
+        return MODE == CONFIG_MODE_PLACEHOLDER;
+    }
+
     public static Map<String,String> loadSettings()
     {
         NetUtil.HttpReturn httpReturn = NetUtil.syncSendGetCommand("getsettings", null, false);
@@ -163,6 +190,7 @@ public class NetUtil implements java.io.Serializable
         {
             Main.setOfficial(true);
         }
+        MODE = Integer.parseInt(props.get("mode"));
         return props;
     }
 

@@ -39,7 +39,7 @@ public class RepoListView extends javafx.scene.control.ListView<String> {
     private static Map<String, String> _repoEncrypted= new HashMap<>();
     private static Stage stage;
     private static int currentOpenIndex = -1;
-    public RepoListView(String [] items, String[] itemData) {
+    public RepoListView(String [] items) {
         super();
         _items = items;
         getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
@@ -89,6 +89,20 @@ public class RepoListView extends javafx.scene.control.ListView<String> {
             return cell;
         });
         refresh();
+    }
+
+    public static String[] getRepos()
+    {
+        return _items;
+    }
+
+    public static String getRepoHash(int i)
+    {
+        return _repoHashes.get(_items[i]);
+    }
+    public static String getLocalFolder(int i)
+    {
+        return _localFolders.get(_items[i]);
     }
 
     public static class RepoListCell extends ListCell<String>
@@ -224,7 +238,7 @@ public class RepoListView extends javafx.scene.control.ListView<String> {
             map.put("Repository Hash", hash);
             map.put("Encrypted", encrypted);
 
-            Platform.runLater(()-> UiUtil.showPropertiesDialog("Repository Info", map, 750, 300));
+            Platform.runLater(()-> UiUtil.showPropertiesDialog(null, "Repository Info", map, 750, 300));
             btn.setDisable(false);
         }).start();
     }

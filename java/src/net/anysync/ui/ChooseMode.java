@@ -19,6 +19,7 @@ import net.anysync.util.UiUtil;
 
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 public class ChooseMode extends BorderPane  implements UiUtil.DialogSetter
@@ -88,7 +89,7 @@ public class ChooseMode extends BorderPane  implements UiUtil.DialogSetter
         _buttons = new Button[repos.length];
         _labels = new Label[repos.length];
 
-        int start = 4;
+        int start = 5;
         for(int i = 0; i < repos.length; i++)
         {
             TextField localFolder = new TextField();
@@ -140,7 +141,7 @@ public class ChooseMode extends BorderPane  implements UiUtil.DialogSetter
 
     public void show()
     {
-        UiUtil.createDialog(this, Main.getString("Choose Mode"), WIDTH, HEIGHT + 60, this, false);
+        UiUtil.createDialog(this, Main.getString("Choose Mode"), WIDTH, HEIGHT + 60, this, false, true);
     }
 
     public void setDialog(Dialog d)
@@ -152,16 +153,30 @@ public class ChooseMode extends BorderPane  implements UiUtil.DialogSetter
                 event -> {
                     if(_sync.isSelected() || _newOnly.isSelected())
                     {
+                        HashSet<String> fs = new HashSet<>();
                         for(int i = 0; i < _localFolders.length; i++)
                         {
-                            if(_localFolders[i].getText().trim().length() == 0)
+                            String text = _localFolders[i].getText().trim();
+                            if(text.length() == 0 || fs.contains(text))
                             {
                                 _localFolders[i].requestFocus();
-                                _errorField.setText("Error: Local folder is required in sync mode. Press 'Choose' button to select one.");
+                                if(text.length() == 0)
+                                {
+                                    _errorField.setText("Error: Local folder is required in sync mode. Press 'Choose' button to select one.");
+                                }
+                                else
+                                {
+                                    _errorField.setText("Error: Local folder must be unique. Press 'Choose' button to select one.");
+                                }
                                 event.consume();
                                 return;
                             }
+                            fs.add(text);
                         }
+                    }
+                    if(_sync.isSelected())
+                    {
+                        SelectiveSync.open(null);
                     }
 
                     updateLocal();

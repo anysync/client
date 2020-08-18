@@ -13,7 +13,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
-import net.anysync.ui.FileBrowserMainController;
+import net.anysync.ui.ControllerBase;
 import net.anysync.ui.Main;
 import net.anysync.util.AppUtil;
 import net.anysync.util.IndexBinRow;
@@ -21,8 +21,8 @@ import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.awt.*;
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
+
 import static net.anysync.util.AppUtil.dateFormat;
 
 public class FileData
@@ -35,17 +35,26 @@ public class FileData
 	private boolean isDir;
 	public final static Color FOLDER_COLOR = Color.rgb(13, 36, 129, 1);
 	private long index;
-	FileBrowserMainController controller;
-
-	public FileData(String folderHash, IndexBinRow row, FileBrowserMainController c)
+	private boolean isSelected;
+	private String fileNameKey;
+	ControllerBase controller;
+	int mode = 0;
+	public static final String NO_SYNC = "No Sync";
+	public FileData(String folderHash, IndexBinRow row, ControllerBase c)
 	{
+		this(folderHash, row, c, false);
+	}
+	public FileData(String folderHash, IndexBinRow row, ControllerBase c, boolean selected)
+	{
+		isSelected = selected;
 		btn = new Button();
 		FontIcon icon = new FontIcon();
 		index = row.index;
 		controller = c;
 		name = new SimpleStringProperty(row.name);
 		hash = row.getHashString();//IndexBinRow.byteArrayToHex(row.hash);
-		isDir = row.isFileModeDirectory();
+		fileNameKey = row.fileNameKey;
+		isDir = row.isFileModeDirectory() || row.isFileModeRepository();
 		String typeString ;//isDir?AppUtil.FOLDER:AppUtil.FILE;
 		if(isDir)
 		{
@@ -94,6 +103,10 @@ public class FileData
 			if(icon != null) icon.setIconColor(Color.GRAY);
 
 		}
+		if(isSelected)
+		{
+			typeString = NO_SYNC;
+		}
 		if(icon != null)
 		{
 			icon.setIconSize(ICON_SIZE - 12);
@@ -101,25 +114,48 @@ public class FileData
 			btn.setMaxSize(ICON_SIZE - 12, ICON_SIZE - 12);
 			btn.setGraphic(icon);
 		}
-		btn.setOnAction(e->{
-			try
-			{
-				Desktop.getDesktop().open(new File(controller.getFullLocalPath( getName()))) ;
-			}
-			catch(IOException ie)
-			{
-			}
-
-		});
+		btn.setOnAction(e-> openFile());
 		type = new SimpleStringProperty(typeString) ;//new SimpleStringProperty("desc");
 		size = isDir ? new SimpleStringProperty("--") : new SimpleStringProperty(getSizeString(row.fileSize));
 		created = new SimpleStringProperty(dateFormat.format(row.createTime*1000));
 		modified = new SimpleStringProperty(dateFormat.format(row.lastModified*1000));
 	}
 
+	public void openFile()
+	{
+		try
+		{
+			if(controller != null)
+			{
+				if(isDir)
+				{
+					if(mode == 0 || (mode == 1 && !isSelected))
+					{
+						controller.enterItem(this);
+						return;
+					}
+				}
+
+				Desktop.getDesktop().open(new File(controller.getFullLocalPath(getName())));
+			}
+		}
+		catch(Exception ignored)
+		{
+		}
+	}
+	
+	public void setMode(int m)
+	{
+		mode = m;
+	}
+
 	public long getIndex()
 	{
 		return index;
+	}
+	public String getFileNameKey()
+	{
+		return fileNameKey;
 	}
 	public boolean isDirectory()
 	{
@@ -246,7 +282,7 @@ public class FileData
 		pos = s.indexOf(" bytes");
 		if(pos > 0)
 		{
-			return (long) (Long.parseLong(s.substring(0, pos)));
+			return Long.parseLong(s.substring(0, pos));
 		}
 		return 0;
 	}
@@ -288,6 +324,13 @@ public class FileData
 	public void setModified(String strModified) {
 		modified.set(strModified);
 	}
-
+	public boolean isSelected()
+	{
+		return isSelected;
+	}
+	public void setSelected(boolean b)
+	{
+		isSelected = b;
+	}
 
 }

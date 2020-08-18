@@ -5,47 +5,56 @@
 // found in the LICENSE file.
 package net.anysync.ui;
 
+import com.moandjiezana.toml.Toml;
 import javafx.collections.FXCollections;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
-import javafx.scene.control.Label;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.TextField;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 import net.anysync.model.FileData;
 import net.anysync.util.*;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.*;
 
-public class FileBrowserMainController
+public class FileBrowserMainController implements  ControllerBase, Main.Status
 {
 	final static Logger log = LogManager.getLogger(FileBrowserMainController.class);
 	private double x, y = 0;
 	private TableView<FileData> tableViewMain;
+	private Set<String> selectedFolders = new HashSet<>();
+
 	private String localFolder;
 	@FXML
 	private TextField pathText;
 	@FXML
 	private BorderPane mainPane;
+	@FXML
+	private Label statusLabel;
 
 	@FXML
 	private void initialize()
 	{
+		Toml t = AppUtil.getConfig();
+		if( t != null)
+		{
+			String fs = t.getString("SelectedFolders").trim();
+			if(fs.length() > 0)
+			{
+				String[] tokens = Tokenizer.parse(fs, ',', true, true);
+				selectedFolders.addAll(Arrays.asList(tokens));
+			}
+		}
+		Main.setStatus(this);
 	}
 
 	public void setFolderHash(String name, String folderHash, String local)
@@ -53,8 +62,7 @@ public class FileBrowserMainController
 		localFolder= local;
 		names.add(name);
 		hashes.add(folderHash);
-		ArrayList<IndexBinRow> rows = getFolderItems(folderHash);
-		listHomeDirectories(folderHash, rows);
+		listHomeDirectories(folderHash);
 		setPathText();
 	}
 
@@ -77,27 +85,67 @@ public class FileBrowserMainController
 		return rows;
 	}
 
-	private void listHomeDirectories(String folderHash, ArrayList<IndexBinRow> rows)
+	private void listHomeDirectories(String folderHash)
 	{
-		if(rows == null || rows.size() == 0) return;
+		List<FileData> homeDirList = createList(folderHash);
+		if(homeDirList == null) return;
+		createMainPane(homeDirList);
+	}
+
+	private void changeFolder(String folderHash)
+	{
+		List<FileData> homeDirList = createList(folderHash);
+		listTableData(homeDirList);
+	}
+
+	private List<FileData> createList(String folderHash)
+	{
+		setPathText();
+		ArrayList<IndexBinRow> rows = getFolderItems(folderHash);
+		if(rows == null || rows.size() == 0) return null;
+
+		String dir = getPathText();
 		List<FileData> homeDirList = new ArrayList<>();
 		for(IndexBinRow row : rows)
 		{
-			FileData fileData = new FileData(folderHash,row, this);
+			boolean selected = false;
+			String d = dir + "/" + row.name;
+			if(selectedFolders.contains(d))
+			{
+				selected = true;
+			}
+			else
+			{
+				for(String f : selectedFolders)
+				{
+					if(d.startsWith(f))
+					{
+						selected = true;
+						break;
+					}
+				}
+			}
+			FileData fileData = new FileData(folderHash, row, this, selected);
 			homeDirList.add(fileData);
+
+
 		}
-		createMainPane(homeDirList);
+		return homeDirList;
 	}
+
 
 	private void createMainPane(List<FileData> homeDirList)
 	{
 		mainPane.setCenter(createTableView());
 		listTableData(homeDirList);
 	}
+	ContextMenu _contextMenu;
+	TableView<FileData> _tableView;
 
 	private TableView createTableView()
 	{
 		TableView<FileData> tableView = new TableView<>();
+		_tableView = tableView;
 		tableView.setFixedCellSize(FileData.ICON_SIZE + 2);//setRowHeight
 		for(PropertyValueFactory<FileData, String> pvf : getColumnsList())
 		{
@@ -117,12 +165,44 @@ public class FileBrowserMainController
 					col.setMinWidth(100.0);
 					col.setPrefWidth(600.0);
 					break;
-				case DESC:
+				case FILE_TYPE:
 					col = new TableColumn<>(pvf.getProperty());
-					col.setText(Main.getString(DESC));
+					col.setText(FILE_TYPE);
 					col.setMaxWidth(-1.0);
 					col.setMinWidth(100.0);
 					col.setPrefWidth(100.0);
+					col.setCellFactory(new Callback<>()
+					{
+						@Override
+						public TableCell<FileData, String> call(TableColumn<FileData, String> param)
+						{
+							return new TableCell<>()
+							{
+
+								@Override
+								public void updateItem(String item, boolean empty)
+								{
+									super.updateItem(item, empty);
+									if(!isEmpty())
+									{
+										setText(item);
+										if(item.equals(FileData.NO_SYNC))
+										{
+											setStyle("-fx-text-fill: brown; ");
+										}
+
+									}
+									else
+									{
+										setText(null);
+										setStyle("");
+									}
+								}
+
+							};
+						}
+					});
+
 					break;
 				case SIZE:
 					col = new TableColumn<>(pvf.getProperty());
@@ -139,6 +219,7 @@ public class FileBrowserMainController
 							else return -1;
 						}
 					});
+
 					break;
 				case CREATED:
 					col = new TableColumn<>(pvf.getProperty());
@@ -165,88 +246,70 @@ public class FileBrowserMainController
 		Label lblEmpty = new Label(EMPTY_DIR);
 		lblEmpty.setId(EMPTY_LBL);
 		tableView.setPlaceholder(lblEmpty);
-		tableView.setContextMenu(getContextMenu());
 		tableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
-		tableView.setOnMouseClicked(new tableViewMouseEventHandler());
-		tableView.setOnKeyReleased(new tableViewKeyEventHandler());
 		setTableView(tableView);
-		return tableView;
-	}
-
-	private class tableViewMouseEventHandler implements EventHandler<MouseEvent>
-	{
-		@Override
-		public void handle(MouseEvent me)
-		{
-			if(me.getButton().equals(MouseButton.PRIMARY) && me.getClickCount() == 2)
+		tableView.addEventHandler(MouseEvent.MOUSE_RELEASED, e -> {
+			FileData fd = ((TableView<FileData>) e.getSource()).getSelectionModel().getSelectedItem();
+			if(e.getButton().equals(MouseButton.PRIMARY) && e.getClickCount() == 2)
 			{
-				if(((TableView<FileData>) me.getSource()).getSelectionModel().getSelectedItem() != null)
+				if(_contextMenu != null) _contextMenu.hide();
+				if(((TableView<FileData>) e.getSource()).getSelectionModel().getSelectedItem() != null)
 				{
-					FileData item = ((TableView<FileData>) me.getSource()).getSelectionModel().getSelectedItem();
-					enterItem(item);
+					enterItem(fd);
 				}
 			}
-			if(me.getButton() == MouseButton.SECONDARY)
+
+			if(e.getButton() == MouseButton.SECONDARY)
 			{
-				((TableView<FileData>) me.getSource()).getContextMenu().show((TableView<FileData>) me.getSource(), me.getScreenX(), me.getScreenY());
-				setRightClickedFileName(getPathText());
-
-				if(((TableView<FileData>) me.getSource()).getSelectionModel().getSelectedItem() != null)
-					setRightClickedFileName(getPathText() + File.separator + ((TableView<FileData>) me.getSource()).getSelectionModel().getSelectedItem().getName());
-
+				if(fd != null && !fd.isDirectory())
+				{
+					_contextMenu = getContextMenu (fd);
+					_contextMenu.show(tableView, e.getScreenX(), e.getScreenY());
+				}
 			}
 			else
 			{
-				((TableView<FileData>) me.getSource()).getContextMenu().hide();
+				if(_contextMenu != null) _contextMenu.hide();
 			}
-		}
-	}
-
-	private class tableViewKeyEventHandler implements EventHandler<KeyEvent>
-	{
-		@SuppressWarnings("unchecked")
-		@Override
-		public void handle(KeyEvent ke)
-		{
-			if(ke.getCode().equals(KeyCode.ENTER))
-			{
-				if(((TableView<FileData>) ke.getSource()).getSelectionModel().getSelectedItem() != null)
-				{
-					FileData item = ((TableView<FileData>) ke.getSource()).getSelectionModel().getSelectedItem();
-					enterItem(item);
-				}
-			}
-			else if(ke.getCode().equals(KeyCode.BACK_SPACE))
-			{
-				moveToPreviousDirectory();
-			}
-
-		}
-	}
-
-	private ContextMenu getContextMenu()
-	{
-		ContextMenu contextMenu = new ContextMenu();
-		MenuItem item;
-		item = new MenuItem("Open");
-		contextMenu.getItems().add(item);
-		item.setOnAction(e -> {
-			if( tableViewMain.getSelectionModel().getSelectedItem() != null)
-			{
-				FileData fd = tableViewMain.getSelectionModel().getSelectedItem();
-				enterItem(fd);
-			}
-
 		});
-		item = new MenuItem("Save As...");
-		contextMenu.getItems().add(item);
+		return tableView;
+	}
+
+	private ContextMenu getContextMenu(FileData fd)
+	{
+
+		if(_contextMenu == null)
+		{
+			_contextMenu = new ContextMenu();
+		}
+		_contextMenu.getItems().clear();
+		MenuItem item;
+		String text = "Save As...";
+		if(NetUtil.isNonSyncMode() || fd.isSelected())
+		{
+			text = "Download Local Copy";
+		}
+		item = new MenuItem(text);
+		_contextMenu.getItems().add(item);
 		item.setOnAction(e -> {
+			if(NetUtil.isNonSyncMode() || fd.isSelected())
+			{
+				String fname = getFullLocalPath(fd.getName());
+				if(NetUtil.isPlaceholderMode())
+				{
+					downloadFile(fd, "Downloads", false);
+				}
+				else
+				{
+					downloadFile(fd, fname, false);
+				}
+				return;
+			}
 			FileChooser fileChooser = new FileChooser();
 			fileChooser.setTitle("Save As");
 			File dest = fileChooser.showSaveDialog(Main.getCurrentStage().getOwner());
 			if(dest != null)
 			{
-				FileData fd = tableViewMain.getSelectionModel().getSelectedItem();
 				File src = new File(getFullLocalPath(fd.getName()));
 				try
 				{
@@ -259,61 +322,60 @@ public class FileBrowserMainController
 			}
 		});
 
-		contextMenu.getItems().add(new SeparatorMenuItem());
-		item = new MenuItem("Rename");
-		contextMenu.getItems().add(item);
-		item.setOnAction(e -> {
-			FileData fd = tableViewMain.getSelectionModel().getSelectedItem();
-			File src = new File(getFullLocalPath(fd.getName()));
-			TextInputDialog dialog = new TextInputDialog(fd.getName());
-			dialog.setTitle("Rename");
-			dialog.setHeaderText(null);
-			dialog.setContentText("Rename file to");
-			UiUtil.centerButtons(dialog.getDialogPane());
-			Optional<String> result = dialog.showAndWait();
-			if(result.isPresent())
-			{
-				String dest = getFullLocalPath(result.get().trim());
-				if(src.renameTo(new File(dest)))
+		if(NetUtil.isSyncMode() && !fd.isSelected())
+		{
+			_contextMenu.getItems().add(new SeparatorMenuItem());
+			item = new MenuItem("Rename");
+			_contextMenu.getItems().add(item);
+			item.setOnAction(e -> {
+				File src = new File(getFullLocalPath(fd.getName()));
+				TextInputDialog dialog = new TextInputDialog(fd.getName());
+				dialog.setTitle("Rename");
+				dialog.setHeaderText(null);
+				dialog.setContentText("Rename file to");
+				UiUtil.centerButtons(dialog.getDialogPane());
+				Optional<String> result = dialog.showAndWait();
+				if(result.isPresent())
 				{
-					NetUtil.syncSendGetCommand("rescan", null, false);
+					String dest = getFullLocalPath(result.get().trim());
+					if(src.renameTo(new File(dest)))
+					{
+						NetUtil.syncSendGetCommand("rescan", null, false);
+					}
 				}
-			}
-		});
-		item = new MenuItem("Delete");
-		contextMenu.getItems().add(item);
-		item.setOnAction(e -> {
-			FileData fd = tableViewMain.getSelectionModel().getSelectedItem();
-			File src = new File(getFullLocalPath(fd.getName()));
-			Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-			alert.setTitle("Delete File");
-			alert.setHeaderText("");
-			alert.setContentText("Are you sure to delete the file?");
-			UiUtil.centerButtons(alert.getDialogPane());
-			Optional<ButtonType> result = alert.showAndWait();
-			if(result.get() == ButtonType.OK)
-			{
-				if(src.delete())
+			});
+			item = new MenuItem("Delete");
+			_contextMenu.getItems().add(item);
+			item.setOnAction(e -> {
+				File src = new File(getFullLocalPath(fd.getName()));
+				Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+				alert.setTitle("Delete File");
+				alert.setHeaderText("");
+				alert.setContentText("Are you sure to delete the file?");
+				UiUtil.centerButtons(alert.getDialogPane());
+				Optional<ButtonType> result = alert.showAndWait();
+				if(result.get() == ButtonType.OK)
 				{
-					NetUtil.syncSendGetCommand("rescan", null, false);
+					if(src.delete())
+					{
+						NetUtil.syncSendGetCommand("rescan", null, false);
+					}
 				}
-			}
 
-		});
-		contextMenu.getItems().add(new SeparatorMenuItem());
+			});
+		}
+		_contextMenu.getItems().add(new SeparatorMenuItem());
 		item = new MenuItem("Version History");
-		contextMenu.getItems().add(item);
+		_contextMenu.getItems().add(item);
 		item.setOnAction(e -> {
-			FileData fd = tableViewMain.getSelectionModel().getSelectedItem();
 			showVersionHistory(fd);
 		});
 		item = new MenuItem("Get Info");
-		contextMenu.getItems().add(item);
+		_contextMenu.getItems().add(item);
 		item.setOnAction(e -> {
-			FileData fd = tableViewMain.getSelectionModel().getSelectedItem();
 			showFileInfo(fd);
 		});
-		return contextMenu;
+		return _contextMenu;
 	}
 
 	private void listTableData(List<FileData> homeDirList)
@@ -383,7 +445,7 @@ public class FileBrowserMainController
 	private ArrayList<String> forwardNames = new ArrayList<>();
 	private ArrayList<String> forwardHashes = new ArrayList<>();
 
-	private void enterItem(FileData item)
+	public void enterItem(FileData item)
 	{
 		if(item.isDirectory())
 		{
@@ -397,7 +459,50 @@ public class FileBrowserMainController
 		{
 			try
 			{
-				Desktop.getDesktop().open(new File(getFullLocalPath(item.getName())));
+				String fname = getFullLocalPath(item.getName());
+				if(NetUtil.isNonSyncMode())
+				{
+					if( ! NetUtil.isPlaceholderMode())
+					{
+						if(new File(fname).exists())
+						{
+							java.awt.Desktop.getDesktop().open(new File(fname));
+						}
+						return;
+					}
+					downloadFile(item,fname,true);
+					return;
+				}
+				else
+				{
+					if(new File(fname).exists())
+					{
+						java.awt.Desktop.getDesktop().open(new File(fname));
+					}
+					else if(!item.isDirectory())
+					{
+						String path = getPathText().substring(1);
+						Toml toml = AppUtil.getConfig();
+						if(toml != null)
+						{
+							String value = toml.getString("SelectedFolders");
+							if(value != null && value.trim().length() > 0)
+							{
+								String[] tokens = Tokenizer.parse(value, ',', true, true);
+								for(String t : tokens)
+								{
+									if(path.startsWith(t))
+									{
+										File f = new File(fname);
+										String dir = f.getParent();
+										new File(dir).mkdirs();
+										downloadFile(item, fname, true);
+									}
+								}
+							}
+						}
+					}
+				}
 			}
 			catch(IOException e)
 			{
@@ -408,7 +513,7 @@ public class FileBrowserMainController
 
 	public String getFullLocalPath(String fname)
 	{
-		String path = pathText.getText();
+		String path = getPathText();
 		int pos = path.indexOf("/", 1);
 		if(pos > 0)
 		{
@@ -420,25 +525,10 @@ public class FileBrowserMainController
 		}
 		return localFolder +  path + "/" + fname;
 	}
-	private void changeFolder(String folderHash)
-	{
-		ArrayList<IndexBinRow> rows = getFolderItems(folderHash);
-		List<FileData> homeDirList = new ArrayList<>(rows.size());
-		for(IndexBinRow row : rows)
-		{
-			homeDirList.add(new FileData(folderHash, row, this));
-		}
-		listTableData(homeDirList);
-		setPathText();
-	}
-
-	private void setRightClickedFileName(String rightClickedFileName)
-	{
-	}
 
 	private void setPathText()
 	{
-		String text = "/" + String.join("/", names);
+		String text = String.join("/", names);
 		this.pathText.setText(text);
 	}
 
@@ -471,9 +561,8 @@ public class FileBrowserMainController
 		NetUtil.HttpReturn httpReturn = NetUtil.syncSendGetCommand("getversions", map, false);
 		if(httpReturn.code != 200) return;
 		VersionHistory versionHistory = new VersionHistory(getFolderHash(), data.getIndex(), httpReturn.response);
-
-		versionHistory.show();
-
+		UiUtil.createDialog(_tableView.getScene().getWindow(), versionHistory, Main.getString("Version History"),
+							VersionHistory.WIDTH, VersionHistory.HEIGHT + 60, versionHistory, false, true);
 	}
 
 	private void showFileInfo(FileData fd)
@@ -485,11 +574,11 @@ public class FileBrowserMainController
 		map.put("Last Modified", fd.getModified());
 		map.put("File Hash", fd.getHash());
 
-		UiUtil.showPropertiesDialog("File Info", map, 750, 250);
+		UiUtil.showPropertiesDialog(_tableView.getScene().getWindow(), "File Info", map, 750, 250);
 	}
 
 	public static final String ICON = "icon";
-	public static final String DESC = ("Type");
+	public static final String FILE_TYPE = ("Type");
 	public static final String SIZE = ("Size");
 	public static final String NAME = ("Name");
 	public static final String CREATED = ("Created");
@@ -498,13 +587,46 @@ public class FileBrowserMainController
 	public static final String EMPTY_LBL = "labelEmpty";
 	public static List<PropertyValueFactory<FileData, String>> getColumnsList()
 	{
-		List<PropertyValueFactory<FileData, String>> colList = new ArrayList<PropertyValueFactory<FileData, String>>();
+		List<PropertyValueFactory<FileData, String>> colList = new ArrayList<>();
 		colList.add(0, new PropertyValueFactory<>(ICON));
 		colList.add(1, new PropertyValueFactory<>(NAME));
-		colList.add(2, new PropertyValueFactory<>(DESC));
+		colList.add(2, new PropertyValueFactory<>(FILE_TYPE));
 		colList.add(3, new PropertyValueFactory<>(SIZE));
 		colList.add(4, new PropertyValueFactory<>(CREATED));
 		colList.add(5, new PropertyValueFactory<>(MODIFIED));
 		return colList;
+	}
+
+	private void downloadFile(FileData item, String fname,  boolean open)
+	{
+		Map<String, String> map = new HashMap<>();
+		map.put("path", getFolderHash());
+		map.put("m", "c");
+		map.put("hash", item.getHash());
+		map.put("open", open ? "1" : "0");
+		map.put("key", item.getFileNameKey());
+		map.put("l", fname);
+		NetUtil.HttpReturn ret = NetUtil.syncSendGetCommand("getversions", map, false);
+//					String url = NetUtil.LOCAL_URL_PREFIX + "tpl/versions.html?m=c&path=" + getFolderHash() + "&hash=" + item.getHash() + "&open=1";
+//					NetUtil.HttpReturn ret = NetUtil.syncSendGetRequest(url, false);
+		if(ret.response.equals("ERR"))
+		{
+			Main.setStatus("Error occurred.");
+		}
+		else if(ret.response.length() == 0)
+		{
+			Main.setStatus("File does not exist: " + fname);
+		}
+		else
+		{
+			Main.setStatus("To download file " + fname);
+		}
+		return;
+
+	}
+
+	public void setStatus(String m)
+	{
+		statusLabel.setText(m);
 	}
 }

@@ -6,10 +6,8 @@
 package net.anysync.ui;
 
 import javafx.fxml.FXMLLoader;
-import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
-import javafx.stage.Screen;
 import javafx.stage.Stage;
 import net.anysync.util.AppUtil;
 import org.apache.log4j.LogManager;
@@ -57,7 +55,7 @@ public class FileBrowserMain
 
 	private static  Scene createScene(Pane mainPane)
 	{
-		Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
+//		Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
 		Scene scene = new Scene(mainPane, 1100, 600);
 		return scene;
 	}

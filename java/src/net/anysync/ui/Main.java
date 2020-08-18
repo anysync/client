@@ -26,6 +26,7 @@ import java.awt.event.MouseAdapter;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -58,7 +59,8 @@ public class Main extends Application
         return new Image(Main.class.getResourceAsStream(fileName));
     }
 
-    public final static String BUILD = "2110";
+    public final static String VERSION = "1.2";
+    public final static String BUILD = "2120";
 
     private static ResourceBundle resourceBundle;
 
@@ -138,9 +140,7 @@ public class Main extends Application
     {
         if(resourceBundle.containsKey(s))
         {
-            String text = resourceBundle.getString(s);
-            if(text != null) return text;
-            else return s;
+            return resourceBundle.getString(s);
         }
         else
         {
@@ -169,7 +169,7 @@ public class Main extends Application
                     Main.class.wait();
                 }
             }
-            catch(InterruptedException e){ }
+            catch(InterruptedException ignored){ }
         }
         Platform.setImplicitExit(false);//so don't exit even though there's no window
         setupLogger();
@@ -239,18 +239,22 @@ public class Main extends Application
     {
         void setStatus(String msg);
     }
-    private static  Status _status;
+
+    private static HashSet<Status> statuses = new HashSet<>();
+
     public static void setStatus(Status s)
     {
-        _status =s;
+        if(s != null) statuses.add(s);
     }
+
     public static void setStatus(String msg)
     {
-        if(_status != null)
+        for (Status s : statuses)
         {
-            Platform.runLater(() ->_status.setStatus(msg));
+            if(s != null) Platform.runLater(() ->s.setStatus(msg));
         }
     }
+
     private static void setupLogger()
     {
         SimpleLayout layout = new SimpleLayout();

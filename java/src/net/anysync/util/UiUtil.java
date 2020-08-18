@@ -12,6 +12,7 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import net.anysync.ui.Main;
 
 import java.util.Map;
@@ -23,10 +24,17 @@ public class UiUtil implements java.io.Serializable
     {
         void setDialog(Dialog d);
     }
-    public static boolean createDialog(Node content, String title, double width, double height, DialogSetter setter, boolean hasCancelBtn)
-    {
-        Dialog<ButtonType> dialog = new Dialog<>();
 
+    public static boolean createDialog(Node content, String title, double width, double height, DialogSetter setter, boolean hasCancelBtn, boolean useCss)
+    {
+        return createDialog(Main.getCurrentStage(), content, title, width, height, setter, hasCancelBtn, useCss);
+    }
+
+    public static boolean createDialog(Window owner, Node content, String title, double width, double height, DialogSetter setter, boolean hasCancelBtn, boolean useCss)
+    {
+        if(owner == null) owner = Main.getCurrentStage();
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.initOwner(owner);
         Object o = dialog.getDialogPane().getScene().getWindow();
         if(o != null && o instanceof Stage)
         {
@@ -40,8 +48,10 @@ public class UiUtil implements java.io.Serializable
 
         DialogPane dialogPane = dialog.getDialogPane();
         dialogPane.setPrefSize(width, height);
-        dialogPane.getStylesheets().add(Main.getResource("/css/main.css").toExternalForm());
-        centerButtons(dialogPane);
+        if (useCss)
+        {
+            dialogPane.getStylesheets().add(Main.getResource("/css/main.css").toExternalForm());
+        }
         dialog.getDialogPane().getScene().getWindow().setOnShown(event -> {
             //this method is invoked right before it's visible, and after layout is done.
             if(setter != null)
@@ -49,6 +59,7 @@ public class UiUtil implements java.io.Serializable
                 setter.setDialog(dialog);
             }
         });
+        centerButtons(dialogPane);
 
         Optional<ButtonType> result = dialog.showAndWait();
         return result.isPresent() && result.get() == ButtonType.OK;
@@ -98,7 +109,7 @@ public class UiUtil implements java.io.Serializable
 
     }
 
-    public static void showPropertiesDialog(String title, Map<String,String> props, int width, int height)
+    public static void showPropertiesDialog(Window window, String title, Map<String,String> props, int width, int height)
     {
         BorderPane borderPane = new BorderPane();
         GridPane pane = new GridPane();
@@ -121,7 +132,7 @@ public class UiUtil implements java.io.Serializable
             pane.add(new Label(entry.getValue()), 1, lineNumber);
             lineNumber++;
         }
-        UiUtil.createDialog(borderPane, title, width, height, null, false);
+        UiUtil.createDialog(window, borderPane, title, width, height, null, false, true);
     }
 
 }

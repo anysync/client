@@ -138,7 +138,7 @@ public class Httpd implements java.io.Serializable
             else if(url.startsWith("/doneDownload:"))
             {
                 String file = url.substring(14);
-                Main.setStatus("Download finished: " + file);
+                Main.setStatus("Downloaded file to: " + file);
             }
             else if(url.startsWith("/failDownload:"))
             {

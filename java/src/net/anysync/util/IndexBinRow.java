@@ -23,8 +23,9 @@ public class IndexBinRow implements java.io.Serializable
     public final static int HASH_BYTE_COUNT = 28;
     public final static int DEFAULT_OPERATION_MODE =255;
     public final static long TYPE_MASK  = 0xFFF00000L;
-    public final static long TYPE_DIRECTORY  = 0x40000000;
-    public final static long TYPE_DELETED = 0x00000000;
+    public final static long TYPE_DIRECTORY  = 0x40000000L;
+    public final static long TYPE_REPOSITORY = 0xF0000000L;
+    public final static long TYPE_DELETED = 0x00000000L;
 
 
     public long index;
@@ -107,6 +108,11 @@ public class IndexBinRow implements java.io.Serializable
     public boolean isFileModeDirectory()
     {
         return (fileMode & TYPE_MASK) == TYPE_DIRECTORY  ;
+    }
+
+    public boolean isFileModeRepository()
+    {
+        return (fileMode & TYPE_MASK) == TYPE_REPOSITORY;
     }
 
     public boolean isDeleted()

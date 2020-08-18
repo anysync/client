@@ -258,9 +258,9 @@ Text{
 }
 
 .dialog-pane .button{
+     -fx-background-color: transparent;
+    -fx-text-fill			: -vBgColor;
 	-fx-font-size			: 13.0;
-   	-fx-background-color	: -vTabPaneBgColor_s;
-   	-fx-text-fill			: -vBgColorDefault; 
 }
 
 .dialog-pane .button:hover {

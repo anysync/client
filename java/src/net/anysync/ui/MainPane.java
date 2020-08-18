@@ -46,7 +46,7 @@ public class MainPane extends BorderPane
 
     private void init()
     {
-        centerPane = new RepoListView(null, null);
+        centerPane = new RepoListView(null);
         centerPane.setStyle("-fx-background-color: null;");
         FontIcon repoIcon = new FontIcon();
         repoIcon.setIconLiteral("fth-list");

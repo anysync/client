@@ -119,7 +119,7 @@ public class LoginController implements Initializable
             stage.close();
             VBox root = new VBox();
             MainPane view = new MainPane(stage);
-            stage.setTitle(Main.getString("app_name") + ". Build " + Main.BUILD);
+            stage.setTitle(Main.getString("app_name") + ". V" + Main.VERSION + " Build " + Main.BUILD);
             VBox.setVgrow(view, Priority.ALWAYS);
             root.getChildren().addAll(/*getMenuBar(),*/ view);
             root.getStylesheets().add(Main.getResource("/css/main.css").toString());
