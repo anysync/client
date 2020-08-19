@@ -102,10 +102,10 @@ public class FileBrowserMainController implements  ControllerBase, Main.Status
 	{
 		setPathText();
 		ArrayList<IndexBinRow> rows = getFolderItems(folderHash);
-		if(rows == null || rows.size() == 0) return null;
+		List<FileData> homeDirList = new ArrayList<>();
+		if(rows == null || rows.size() == 0) return homeDirList;
 
 		String dir = getPathText();
-		List<FileData> homeDirList = new ArrayList<>();
 		for(IndexBinRow row : rows)
 		{
 			boolean selected = false;
