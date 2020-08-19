@@ -6,11 +6,12 @@
 package net.anysync.ui;
 
 import javafx.application.Platform;
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.Dialog;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -18,6 +19,7 @@ import net.anysync.util.FileUtil;
 import net.anysync.util.UiUtil;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -107,19 +109,11 @@ public class ChooseEdition extends BorderPane  implements UiUtil.DialogSetter
             Stage stage = new Stage();
             _stage = stage;
             stage.getIcons().add(Main.getImage("/images/app128.png"));
-            Dialog<ButtonType> dialog = new Dialog<>();
             ChooseEdition m = new ChooseEdition();
             Scene scene = new Scene(m, WIDTH, HEIGHT);
             stage.setScene(scene);
             stage.getScene().getStylesheets().add(Main.getResource("/css/main.css").toExternalForm());
-            stage.getScene().getWindow().addEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST, new EventHandler<WindowEvent>()
-            {
-                @Override
-                public void handle(WindowEvent windowEvent)
-                {
-                    windowEvent.consume();
-                }
-            });
+            stage.getScene().getWindow().addEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST, windowEvent -> windowEvent.consume());
             stage.setTitle("Choose Mode");
 
             stage.show();
