@@ -71,7 +71,7 @@
                 <PasswordField fx:id="txtPassword" onAction="#onEnter" layoutX="7.0" layoutY="61.0" prefHeight="34.0" prefWidth="275.0" promptText="password" stylesheets="@/css/style.css" />
 
                 <TextField fx:id="txtServer" layoutX="7.0" prefHeight="34.0" layoutY="125.0"  prefWidth="275.0"
-                           promptText="Server name or IP address" text="server.anysync.net"/>
+                           promptText="Server name or IP address" text="server.anysync.net" onAction="#onEnter"/>
 
 
 

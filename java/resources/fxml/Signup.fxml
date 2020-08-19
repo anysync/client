@@ -72,7 +72,7 @@
                                promptText="Enter password again" />
 
                 <TextField fx:id="txtServer" layoutX="7.0" prefHeight="34.0" layoutY="189.0" prefWidth="255.0"
-                           promptText="Server name or IP address" text="server.anysync.net"/>
+                           promptText="Server name or IP address" text="server.anysync.net" onAction="#onEnter"/>
 
                 <Label fx:id="lblErrors" alignment="BASELINE_LEFT" layoutX="8.0" layoutY="225.0" prefHeight="23.0"
                        prefWidth="255.0" textFill="#ff6354">
