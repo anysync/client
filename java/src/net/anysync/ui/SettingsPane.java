@@ -82,7 +82,7 @@ public class SettingsPane extends BorderPane implements UiUtil.DialogSetter
 
     public void show()
     {
-        if(UiUtil.createDialog(this, Main.getString("Settings"), WIDTH, HEIGHT + 60, this, true, true))
+        if(UiUtil.createDialog(this, Main.getString("Settings"), WIDTH, HEIGHT + 60, this, true, false))
         {
             settings.put("rate", _bandwidth.getText().trim());
             settings.put("maxsize", _maxSize.getText().trim());
@@ -151,6 +151,10 @@ public class SettingsPane extends BorderPane implements UiUtil.DialogSetter
         mod.setOnAction(e->{
             SelectiveSync.open(_selectedFolders);
         });
+        if(NetUtil.isNonSyncMode())
+        {
+            mod.setDisable(true);
+        }
         pane.add(mod, 2, 5);
         _selectedFolders = new TextArea(settings.get("selectedfolders"));
         _selectedFolders.setWrapText(true);
