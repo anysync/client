@@ -123,7 +123,7 @@ public class MainPane extends BorderPane
         icon.setIconSize(22);
         icon.setIconColor(javafx.scene.paint.Color.WHITE);
         icon.setOnMouseClicked(event -> {
-            NetUtil.syncSendGetCommand("rescan", null, false);
+            NetUtil.syncSendGetCommand("rescan", null, true);
         });
         Button btn2 = new Button();
         btn2.setGraphic(icon);

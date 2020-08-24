@@ -190,6 +190,10 @@ public class FileBrowserMainController implements  ControllerBase, Main.Status
 										{
 											setStyle("-fx-text-fill: brown; ");
 										}
+										else
+										{
+											setStyle("-fx-text-fill: black; ");
+										}
 
 									}
 									else

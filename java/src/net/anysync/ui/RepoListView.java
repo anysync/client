@@ -91,27 +91,11 @@ public class RepoListView extends javafx.scene.control.ListView<String> {
         refresh();
     }
 
-    public static String[] getRepos()
-    {
-        return _items;
-    }
-
-    public static String getRepoHash(int i)
-    {
-        return _repoHashes.get(_items[i]);
-    }
-    public static String getLocalFolder(int i)
-    {
-        return _localFolders.get(_items[i]);
-    }
-
     public static class RepoListCell extends ListCell<String>
     {
-        private RepoListView _mRepoListView;
-
         public RepoListCell(RepoListView repoListView)
         {
-            _mRepoListView = repoListView;
+            
         }
 
         @Override
@@ -148,7 +132,7 @@ public class RepoListView extends javafx.scene.control.ListView<String> {
                 pane.setPadding(new Insets(5, 5, 5, 5));
 
                 pane.add(imageView, 0, 0);
-                Label label = new Label(item.toString());
+                Label label = new Label(item);
                 pane.add(label, 1, 0);
                 imageView.setStyle("-fx-cursor: hand");
                 label.setStyle("-fx-cursor: hand");
@@ -199,7 +183,7 @@ public class RepoListView extends javafx.scene.control.ListView<String> {
         String data = (String) btn.getUserData();
         String hash = _repoHashes.get(data);// data.substring(0, pos);
         params.put("hash", hash);
-        NetUtil.syncSendGetCommand("qverify", params, false);
+        NetUtil.syncSendGetCommand("qverify", params, true);
         Main.setStatus("Start verifying " + data);
     }
 
@@ -210,7 +194,7 @@ public class RepoListView extends javafx.scene.control.ListView<String> {
         String data = (String) btn.getUserData();
         String hash = _repoHashes.get(data);// data.substring(0, pos);
         params.put("hash", hash);
-        NetUtil.syncSendGetCommand("verify", params, false);
+        NetUtil.syncSendGetCommand("verify", params, true);
         Main.setStatus("Start full verifying " + data);
     }
 
@@ -225,7 +209,7 @@ public class RepoListView extends javafx.scene.control.ListView<String> {
             String encrypted = _repoEncrypted.get(data);
             HashMap<String, String> params = new HashMap<>();
             params.put("hash", hash);
-            NetUtil.HttpReturn ret = NetUtil.syncSendGetCommand("getsize", params, false);
+            NetUtil.HttpReturn ret = NetUtil.syncSendGetCommand("getsize", params, true);
             if(ret.code != 200) return;
             String[] lines = Tokenizer.parse(ret.response, '\n', true, true);
             long size = Long.parseLong(lines[0]);
@@ -243,11 +227,8 @@ public class RepoListView extends javafx.scene.control.ListView<String> {
         }).start();
     }
 
-    private static Map<String, String> settings;
-
     public void setData( Map<String, String> props)
     {
-        settings = props;
         String[] repos = Tokenizer.parse(props.get("repos"), ',', true, true);
         String[] repoHashes = Tokenizer.parse(props.get("repoHashes"), ',', true, true);
         String[] locals = Tokenizer.parse(props.get("localFolders"), ',', true, true);
