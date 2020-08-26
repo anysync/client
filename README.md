@@ -1,5 +1,7 @@
 # AnySync Client 
 
+<img src="http://anysync.net/assets/images/client_main.png" alt="client window"/>
+
 An open source client for [AnySync](https://anysync.net), which is 
 a secure cloud storage service with end-to-end encryption.
 ## Features
